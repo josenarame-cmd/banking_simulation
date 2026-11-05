@@ -416,11 +416,11 @@ export default function LandingPage() {
                                 <Stack direction="row" spacing={1} flexWrap="wrap" gap={0.8}>
                                     <Chip
                                         avatar={<Avatar sx={{ bgcolor: '#0284c7', color: '#fff' }}>A</Avatar>}
-                                        label="System Administrator"
+                                        label="System Administrator (Jose Narame)"
                                         clickable
                                         color="primary"
                                         variant="filled"
-                                        onClick={() => handleQuickLogin('admin@banking.com', 'password123')}
+                                        onClick={() => handleQuickLogin('josenarame@gmail.com', 'password123')}
                                         sx={{ fontWeight: 700, fontSize: '0.78rem' }}
                                     />
                                     <Chip

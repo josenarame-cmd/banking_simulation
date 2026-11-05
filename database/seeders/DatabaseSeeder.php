@@ -118,8 +118,8 @@ class DatabaseSeeder extends Seeder
 
         // 5. Seed Users
         $admin = User::create([
-            'name' => 'System Administrator',
-            'email' => 'admin@banking.com',
+            'name' => 'Jose Narame',
+            'email' => 'josenarame@gmail.com',
             'phone' => '+250788111222',
             'role' => 'admin',
             'status' => 'active',

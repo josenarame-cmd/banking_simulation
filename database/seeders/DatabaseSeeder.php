@@ -110,7 +110,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // 4. System Settings
-        SystemSetting::set('approval_threshold', '10000.00', 'Transactions exceeding this amount require instructor/admin approval');
+        SystemSetting::set('approval_threshold', '10000.00', 'Transactions exceeding this amount require officer/admin approval');
         SystemSetting::set('daily_transfer_limit', '50000.00', 'Maximum transfer limit per account per 24 hours');
         SystemSetting::set('bank_name', 'FinTech Simulated Core Bank', 'System display name');
         SystemSetting::set('default_currency', 'USD', 'Primary simulation currency');
@@ -134,26 +134,26 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $instructor = User::create([
-            'name' => 'SAFARI Cyprien (Instructor)',
-            'email' => 'instructor@banking.com',
+            'name' => 'Cyprien Safari',
+            'email' => 'officer@banking.com',
             'phone' => '+250788333444',
-            'role' => 'instructor',
+            'role' => 'officer',
             'status' => 'active',
             'email_verified_at' => now(),
             'password' => Hash::make('password123'),
         ]);
         UserProfile::create([
             'user_id' => $instructor->id,
-            'address' => 'RP Karongi College, Western Province, Rwanda',
+            'address' => 'Kigali Financial District, Rwanda',
             'date_of_birth' => '1988-11-20',
-            'identification_number' => 'INST-2026-002',
+            'identification_number' => 'OFC-2026-002',
         ]);
 
         $john = User::create([
-            'name' => 'John Doe',
-            'email' => 'john.doe@banking.com',
+            'name' => 'James Carter',
+            'email' => 'james.carter@banking.com',
             'phone' => '+250788555666',
-            'role' => 'user',
+            'role' => 'customer',
             'status' => 'active',
             'email_verified_at' => now(),
             'password' => Hash::make('password123'),
@@ -169,7 +169,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Jane Smith',
             'email' => 'jane.smith@banking.com',
             'phone' => '+250788777888',
-            'role' => 'user',
+            'role' => 'customer',
             'status' => 'active',
             'email_verified_at' => now(),
             'password' => Hash::make('password123'),
@@ -185,7 +185,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Robert Mugisha',
             'email' => 'robert.mugisha@banking.com',
             'phone' => '+250788999000',
-            'role' => 'user',
+            'role' => 'customer',
             'status' => 'active',
             'email_verified_at' => now(),
             'password' => Hash::make('password123'),
@@ -203,7 +203,7 @@ class DatabaseSeeder extends Seeder
             'user_id' => $john->id,
             'account_type_id' => $checkingType->id,
             'account_number' => 'CHK-10000001',
-            'account_name' => "John Doe's Checking",
+            'account_name' => "James Carter's Checking",
             'account_type' => 'checking',
             'currency' => 'USD',
             'balance' => 12500.00,
@@ -216,7 +216,7 @@ class DatabaseSeeder extends Seeder
             'user_id' => $john->id,
             'account_type_id' => $savingsType->id,
             'account_number' => 'SAV-20000001',
-            'account_name' => "John Doe's High Yield Savings",
+            'account_name' => "James Carter's High Yield Savings",
             'account_type' => 'savings',
             'currency' => 'USD',
             'balance' => 25000.00,
@@ -229,7 +229,7 @@ class DatabaseSeeder extends Seeder
             'user_id' => $john->id,
             'account_type_id' => $fixedDepositType->id,
             'account_number' => 'FD-30000001',
-            'account_name' => "John Doe's 6-Month Term Deposit",
+            'account_name' => "James Carter's 6-Month Term Deposit",
             'account_type' => 'fixed_deposit',
             'currency' => 'USD',
             'balance' => 10000.00,
@@ -348,7 +348,7 @@ class DatabaseSeeder extends Seeder
             'approver_id' => null,
             'approval_level' => 1,
             'status' => 'pending',
-            'notes' => 'Awaiting instructor or admin review. Exceeds $10,000 threshold.',
+            'notes' => 'Awaiting compliance officer or admin review. Exceeds $10,000 threshold.',
         ]);
 
         // 8. Seed Scheduled Transfer
@@ -431,14 +431,14 @@ class DatabaseSeeder extends Seeder
         Notification::create([
             'user_id' => $john->id,
             'title' => 'High-Value Transfer Under Review',
-            'message' => 'Your transfer of $15,000.00 is currently queued for instructor/admin approval.',
+            'message' => 'Your transfer of $15,000.00 is currently queued for compliance officer/admin approval.',
             'notification_type' => 'warning',
             'is_read' => false,
         ]);
         Notification::create([
             'user_id' => $jane->id,
             'title' => 'Incoming Funds Received',
-            'message' => 'You received $2,500.00 from John Doe (CHK-10000001).',
+            'message' => 'You received $2,500.00 from James Carter (CHK-10000001).',
             'notification_type' => 'success',
             'is_read' => false,
         ]);
@@ -460,7 +460,7 @@ class DatabaseSeeder extends Seeder
             'entity_id' => $tx2->id,
             'ip_address' => '127.0.0.1',
             'user_agent' => 'Mozilla/5.0',
-            'description' => 'Peer transfer of $2,500.00 initiated from CHK-10000001 to CHK-10000002.',
+            'description' => 'Peer transfer of $2,500.00 initiated from CHK-10000001 to CHK-10000002 (James Carter → Jane Smith).',
         ]);
     }
 }

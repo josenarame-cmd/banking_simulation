@@ -106,7 +106,7 @@ export default function Layout() {
     const navSections = [
         {
             title: 'Personal Banking',
-            roles: ['user', 'admin', 'instructor'],
+            roles: ['customer', 'admin', 'officer'],
             items: [
                 { text: 'My Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
                 { text: 'My Accounts', path: '/accounts', icon: <AccountBalanceIcon /> },
@@ -118,10 +118,10 @@ export default function Layout() {
         },
         {
             title: 'Control & Oversight',
-            roles: ['admin', 'instructor'],
+            roles: ['admin', 'officer'],
             items: [
                 ...(isAdmin ? [{ text: 'Admin Overview', path: '/admin/dashboard', icon: <DashboardIcon /> }] : []),
-                ...(isInstructor ? [{ text: 'Instructor Lab', path: '/instructor/dashboard', icon: <DashboardIcon /> }] : []),
+                ...(isInstructor ? [{ text: 'Officer Lab', path: '/instructor/dashboard', icon: <DashboardIcon /> }] : []),
                 { text: 'Transfer Approvals', path: '/approvals', icon: <HowToVoteIcon /> },
                 { text: 'Double-Entry Ledger', path: '/ledger', icon: <MenuBookIcon /> },
                 { text: 'Ledger Reconciliation', path: '/reconciliation', icon: <FactCheckIcon /> },
@@ -244,9 +244,13 @@ export default function Layout() {
                         {user?.name}
                     </Typography>
                     <Chip
-                        label={user?.role?.toUpperCase()}
+                        label={
+                            user?.role === 'admin' ? 'ADMINISTRATOR' :
+                            user?.role === 'officer' ? 'COMPLIANCE OFFICER' :
+                            'CUSTOMER'
+                        }
                         size="small"
-                        color={user?.role === 'admin' ? 'primary' : user?.role === 'instructor' ? 'secondary' : 'default'}
+                        color={user?.role === 'admin' ? 'primary' : user?.role === 'officer' ? 'secondary' : 'default'}
                         sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }}
                     />
                 </Box>

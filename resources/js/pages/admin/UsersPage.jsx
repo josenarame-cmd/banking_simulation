@@ -110,8 +110,8 @@ export default function UsersPage() {
                     >
                         <MenuItem value="">All Roles</MenuItem>
                         <MenuItem value="admin">Administrator</MenuItem>
-                        <MenuItem value="instructor">Instructor</MenuItem>
-                        <MenuItem value="user">Student User</MenuItem>
+                        <MenuItem value="officer">Compliance Officer</MenuItem>
+                        <MenuItem value="customer">Customer</MenuItem>
                     </TextField>
                     <TextField
                         select
@@ -169,8 +169,12 @@ export default function UsersPage() {
                                     <TableCell>
                                         <Chip
                                             size="small"
-                                            label={u.role?.toUpperCase()}
-                                            color={u.role === 'admin' ? 'primary' : u.role === 'instructor' ? 'secondary' : 'default'}
+                                            label={
+                                                u.role === 'admin' ? 'ADMINISTRATOR' :
+                                                u.role === 'officer' ? 'COMPLIANCE OFFICER' :
+                                                'CUSTOMER'
+                                            }
+                                            color={u.role === 'admin' ? 'primary' : u.role === 'officer' ? 'secondary' : 'default'}
                                             sx={{ fontWeight: 700, fontSize: '0.65rem' }}
                                         />
                                     </TableCell>

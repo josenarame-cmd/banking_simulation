@@ -43,7 +43,7 @@ export default function LoansPage() {
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
 
-    const isStaff = user?.role === 'admin' || user?.role === 'instructor';
+    const isStaff = user?.role === 'admin' || user?.role === 'officer';
 
     // Staff tab: 0 = All System Loans (Staff Directory), 1 = My Personal Loans
     const [staffTab, setStaffTab] = useState(0);

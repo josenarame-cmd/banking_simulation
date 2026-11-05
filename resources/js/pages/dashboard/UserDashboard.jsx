@@ -256,7 +256,7 @@ export default function UserDashboard() {
                             component={RouterLink}
                             to={isAdmin ? '/admin/dashboard' : '/instructor/dashboard'}
                         >
-                            Open {isAdmin ? 'Admin Overview' : 'Instructor Lab'}
+                            Open {isAdmin ? 'Admin Overview' : 'Officer Dashboard'}
                         </Button>
                     }
                 >

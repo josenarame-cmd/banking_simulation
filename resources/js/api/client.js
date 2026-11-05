@@ -14,6 +14,7 @@ const api = axios.create({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
     },
+    timeout: 30000, // 30 second request timeout
 });
 
 // Request Interceptor: Attach Sanctum Bearer Token and Idempotency Key
@@ -34,14 +35,31 @@ api.interceptors.request.use((config) => {
 });
 
 // Response Interceptor: Global 401 handling
+// The AuthContext handles session state; we only clean up localStorage
+// and redirect if we're not already on the login page.
+let isRedirecting = false;
+
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
+            // Clear stored credentials on any 401
             localStorage.removeItem('banking_token');
             localStorage.removeItem('banking_user');
-            if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
+
+            // Redirect to login only once (avoid race from multiple concurrent 401s)
+            const isOnAuthPage = window.location.pathname.includes('/login') ||
+                                 window.location.pathname.includes('/register') ||
+                                 window.location.pathname === '/';
+            if (!isRedirecting && !isOnAuthPage) {
+                isRedirecting = true;
+                // Small delay so AuthContext can process the session expiry first
+                setTimeout(() => {
+                    isRedirecting = false;
+                    if (!localStorage.getItem('banking_token')) {
+                        window.location.href = '/login';
+                    }
+                }, 500);
             }
         }
         return Promise.reject(error);
@@ -61,4 +79,3 @@ export const downloadCsv = async (url, defaultFilename = 'export.csv') => {
 };
 
 export default api;
-

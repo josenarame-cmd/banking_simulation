@@ -74,8 +74,8 @@ export default function TransactionsList() {
     const loadTransactions = async () => {
         setLoading(true);
         // Read role fresh from user object to avoid stale closure
-        const isAdminOrInstructor = user?.role === 'admin' || user?.role === 'instructor';
-        const endpoint = isAdminOrInstructor ? '/transactions' : '/my-transactions';
+        const isAdminOrOfficer = user?.role === 'admin' || user?.role === 'officer';
+        const endpoint = isAdminOrOfficer ? '/transactions' : '/my-transactions';
         try {
             const res = await api.get(endpoint, {
                 params: {

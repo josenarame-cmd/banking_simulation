@@ -40,14 +40,24 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function isOfficer(): bool
+    {
+        return $this->role === 'officer';
+    }
+
     public function isInstructor(): bool
     {
-        return $this->role === 'instructor';
+        return $this->role === 'officer'; // alias for backward compat
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
     }
 
     public function isUser(): bool
     {
-        return $this->role === 'user';
+        return $this->role === 'customer'; // alias for backward compat
     }
 
     public function isActive(): bool

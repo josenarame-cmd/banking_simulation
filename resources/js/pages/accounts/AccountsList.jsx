@@ -44,8 +44,8 @@ export default function AccountsList() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const isStaff = user?.role === 'admin' || user?.role === 'instructor';
-    // If on /admin/accounts, default to All Accounts (0). On /accounts, if staff, default to All (0), student defaults to 1.
+    const isStaff = user?.role === 'admin' || user?.role === 'officer';
+    // If on /admin/accounts, default to All Accounts (0). On /accounts, if staff, default to All (0), customer defaults to 1.
     const [viewTab, setViewTab] = useState(() => (location.pathname.startsWith('/admin') || isStaff) ? 0 : 1);
 
     const [accounts, setAccounts] = useState([]);

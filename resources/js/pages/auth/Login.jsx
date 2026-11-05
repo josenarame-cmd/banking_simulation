@@ -15,7 +15,7 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
-    const { login } = useAuth();
+    const { login, sessionExpired } = useAuth();
     const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
@@ -32,7 +32,7 @@ export default function Login() {
             const user = await login(email, password);
             if (user.role === 'admin') {
                 navigate('/admin/dashboard');
-            } else if (user.role === 'instructor') {
+            } else if (user.role === 'officer') {
                 navigate('/instructor/dashboard');
             } else {
                 navigate('/dashboard');
@@ -68,6 +68,12 @@ export default function Login() {
                             Sign in to access your digital banking portal
                         </Typography>
                     </Box>
+
+                    {sessionExpired && (
+                        <Alert severity="warning" sx={{ mb: 2 }}>
+                            Your session has expired due to inactivity. Please sign in again to continue.
+                        </Alert>
+                    )}
 
                     {error && (
                         <Alert severity="error" sx={{ mb: 3 }}>

@@ -29,7 +29,7 @@ export default function Register() {
         password: '',
         password_confirmation: '',
         phone: '',
-        role: 'user',
+        role: 'customer',
         address: '',
         date_of_birth: '',
         identification_number: '',
@@ -53,7 +53,7 @@ export default function Register() {
         try {
             const user = await register(formData);
             if (user.role === 'admin') navigate('/admin/dashboard');
-            else if (user.role === 'instructor') navigate('/instructor/dashboard');
+            else if (user.role === 'officer') navigate('/instructor/dashboard');
             else navigate('/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. Please check inputs.');
@@ -133,8 +133,8 @@ export default function Register() {
                                         label="Account Role"
                                         onChange={handleChange}
                                     >
-                                        <MenuItem value="user">Student / Learner (User)</MenuItem>
-                                        <MenuItem value="instructor">Instructor (Trainer)</MenuItem>
+                                        <MenuItem value="customer">Banking Customer</MenuItem>
+                                        <MenuItem value="officer">Compliance Officer</MenuItem>
                                     </Select>
                                 </FormControl>
                             </Grid>

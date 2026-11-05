@@ -49,7 +49,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
-        if (user.role === 'instructor') return <Navigate to="/instructor/dashboard" replace />;
+        if (user.role === 'officer') return <Navigate to="/instructor/dashboard" replace />;
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -75,7 +75,7 @@ const RootRedirect = () => {
     if (user.role === 'admin') {
         return <Navigate to="/admin/dashboard" replace />;
     }
-    if (user.role === 'instructor') {
+    if (user.role === 'officer') {
         return <Navigate to="/instructor/dashboard" replace />;
     }
     return <Navigate to="/dashboard" replace />;
@@ -109,8 +109,8 @@ export default function AppRouter() {
                             <Route path="/reports" element={<ReportsPage />} />
                         </Route>
 
-                        {/* Instructor & Admin Protected Routes */}
-                        <Route element={<ProtectedRoute allowedRoles={['admin', 'instructor']} />}>
+                        {/* Compliance Officer & Admin Protected Routes */}
+                        <Route element={<ProtectedRoute allowedRoles={['admin', 'officer']} />}>
                             <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                             <Route path="/approvals" element={<ApprovalsPage />} />
                             <Route path="/ledger" element={<LedgerPage />} />

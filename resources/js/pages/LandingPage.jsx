@@ -86,7 +86,7 @@ export default function LandingPage() {
         try {
             const loggedInUser = await login(email, password);
             if (loggedInUser.role === 'admin') navigate('/admin/dashboard');
-            else if (loggedInUser.role === 'instructor') navigate('/instructor/dashboard');
+            else if (loggedInUser.role === 'officer') navigate('/instructor/dashboard');
             else navigate('/dashboard');
         } catch (err) {
             navigate('/login');
@@ -429,7 +429,7 @@ export default function LandingPage() {
                                         clickable
                                         color="success"
                                         variant="filled"
-                                        onClick={() => handleQuickLogin('instructor@banking.com', 'password123')}
+                                        onClick={() => handleQuickLogin('officer@banking.com', 'password123')}
                                         sx={{ fontWeight: 700, fontSize: '0.78rem' }}
                                     />
                                     <Chip
@@ -438,7 +438,7 @@ export default function LandingPage() {
                                         clickable
                                         color="secondary"
                                         variant="filled"
-                                        onClick={() => handleQuickLogin('john.doe@banking.com', 'password123')}
+                                        onClick={() => handleQuickLogin('james.carter@banking.com', 'password123')}
                                         sx={{ fontWeight: 700, fontSize: '0.78rem' }}
                                     />
                                 </Stack>

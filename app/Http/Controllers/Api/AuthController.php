@@ -31,10 +31,10 @@ class AuthController extends Controller
             'address' => 'nullable|string|max:500',
             'date_of_birth' => 'nullable|date',
             'identification_number' => 'nullable|string|max:50',
-            'role' => ['sometimes', Rule::in(['user', 'instructor'])],
+            'role' => ['sometimes', Rule::in(['customer', 'officer'])],
         ]);
 
-        $role = $validated['role'] ?? 'user';
+        $role = $validated['role'] ?? 'customer';
 
         $user = User::create([
             'name' => $validated['name'],
@@ -55,7 +55,7 @@ class AuthController extends Controller
 
         // Automatically open a default Checking Account with $1,000 simulated welcome bonus!
         $checkingType = AccountType::where('code', 'checking')->first();
-        if ($checkingType && $role === 'user') {
+        if ($checkingType && $role === 'customer') {
             try {
                 AccountService::createAccount($user, $checkingType->id, "{$user->name}'s Primary Checking", 1000.00);
             } catch (\Exception $e) {

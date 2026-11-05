@@ -220,6 +220,20 @@ class DashboardController extends Controller
             ->where('status', 'requires_approval')
             ->count();
 
+        // Calculate user interest earned & recent fees
+        $interestEarned = (float) InterestCalculation::whereIn('account_id', $accountIds)
+            ->where('status', 'credited')
+            ->sum('interest_amount');
+
+        $recentFees = (float) Fee::whereIn('account_id', $accountIds)
+            ->sum('amount');
+
+        // Account balances grouped by account type
+        $balancesByType = BankAccount::where('user_id', $user->id)
+            ->selectRaw('account_type, SUM(balance) as total_balance, COUNT(*) as count')
+            ->groupBy('account_type')
+            ->get();
+
         return response()->json([
             'status' => 'success',
             'summary' => [
@@ -230,7 +244,10 @@ class DashboardController extends Controller
                 'scheduled_transfers_count' => count($scheduledTransfers),
                 'unread_notifications' => $unreadNotifications,
                 'pending_approvals' => $pendingApprovals,
+                'interest_earned' => $interestEarned,
+                'recent_fees' => $recentFees,
             ],
+            'balances_by_type' => $balancesByType,
             'accounts' => $accounts,
             'recent_transactions' => $recentTransactions,
             'upcoming_installments' => $upcomingInstallments,

@@ -40,12 +40,25 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import SchoolIcon from '@mui/icons-material/School';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import PriceCheckIcon from '@mui/icons-material/PriceCheck';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 
 import StatCard from '../../components/StatCard';
 import StatusBadge from '../../components/StatusBadge';
 import ReceiptModal from '../../components/ReceiptModal';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
+
+import {
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip as RechartsTooltip,
+    Legend
+} from 'recharts';
 
 export default function UserDashboard() {
     const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
@@ -295,8 +308,8 @@ export default function UserDashboard() {
                 </Stack>
             </Box>
 
-            {/* KPI Stat Cards */}
-            <Grid container spacing={3} mb={4}>
+            {/* Primary KPI Summary Cards */}
+            <Grid container spacing={2.5} mb={3}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard
                         title="Total Available Funds"
@@ -312,12 +325,12 @@ export default function UserDashboard() {
                         value={data?.summary?.accounts_count || 0}
                         icon={<AccountBalanceIcon />}
                         color="secondary"
-                        subtitle="Checking, Savings, Term Deposit"
+                        subtitle="Checking, Savings, Fixed Term"
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard
-                        title="Active Loan Obligations"
+                        title="Active Loan Debt"
                         value={`$${Number(data?.summary?.total_loan_debt || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                         icon={<MonetizationOnIcon />}
                         color="info"
@@ -330,10 +343,115 @@ export default function UserDashboard() {
                         value={data?.summary?.scheduled_transfers_count || 0}
                         icon={<ScheduleIcon />}
                         color="warning"
-                        subtitle="Recurring auto-transfers"
+                        subtitle="Active recurring transfers"
                     />
                 </Grid>
             </Grid>
+
+            {/* Secondary Financial Metrics: Interest, Fees, Pending Approvals, Notifications */}
+            <Grid container spacing={2.5} mb={4}>
+                <Grid item xs={6} md={3}>
+                    <StatCard
+                        title="Interest Earned"
+                        value={`+$${Number(data?.summary?.interest_earned || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                        icon={<TrendingUpIcon />}
+                        color="success"
+                        subtitle="Credited savings & CD yield"
+                    />
+                </Grid>
+                <Grid item xs={6} md={3}>
+                    <StatCard
+                        title="Recent Fees"
+                        value={`$${Number(data?.summary?.recent_fees || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                        icon={<PriceCheckIcon />}
+                        color="secondary"
+                        subtitle="Maintenance & transfer fees"
+                    />
+                </Grid>
+                <Grid item xs={6} md={3}>
+                    <StatCard
+                        title="Pending Approvals"
+                        value={data?.summary?.pending_approvals || 0}
+                        icon={<HourglassEmptyIcon />}
+                        color="warning"
+                        subtitle="Awaiting officer review"
+                    />
+                </Grid>
+                <Grid item xs={6} md={3}>
+                    <StatCard
+                        title="Unread Notifications"
+                        value={data?.summary?.unread_notifications || 0}
+                        icon={<NotificationsActiveIcon />}
+                        color="info"
+                        subtitle="Security & transfer alerts"
+                    />
+                </Grid>
+            </Grid>
+
+            {/* Financial Visualizer: Balances by Account Type (Recharts) */}
+            {data?.accounts?.length > 0 && (
+                <Grid container spacing={3} mb={4}>
+                    <Grid item xs={12} md={5}>
+                        <Card sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Typography variant="h6" fontWeight={800} gutterBottom>
+                                Portfolio Allocation
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                                Visual distribution of your liquid vs term banking assets
+                            </Typography>
+                            <Box sx={{ width: '100%', height: 220 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={(data?.balances_by_type || []).map(b => ({
+                                                name: formatType(b.account_type),
+                                                value: Number(b.total_balance) || 0
+                                            }))}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={50}
+                                            outerRadius={80}
+                                            paddingAngle={4}
+                                            dataKey="value"
+                                        >
+                                            {['#0284c7', '#10b981', '#f59e0b', '#8b5cf6'].map((color, index) => (
+                                                <Cell key={`cell-${index}`} fill={color} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip formatter={(val) => `$${Number(val).toLocaleString()}`} />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </Box>
+                        </Card>
+                    </Grid>
+                    <Grid item xs={12} md={7}>
+                        <Card sx={{ p: 3, borderRadius: 3, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Typography variant="h6" fontWeight={800} gutterBottom>
+                                Liquid Position & Reserve Breakdown
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" mb={3}>
+                                Total Assets Settled: <strong>${Number(data?.summary?.total_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                            </Typography>
+                            <Stack spacing={2}>
+                                {(data?.balances_by_type || []).map((b, idx) => (
+                                    <Box key={idx} display="flex" justifyContent="space-between" alignItems="center" p={1.5} sx={{ bgcolor: 'action.hover', borderRadius: 2 }}>
+                                        <Box display="flex" alignItems="center" gap={1.5}>
+                                            <Chip label={formatType(b.account_type)} size="small" color={idx === 0 ? 'primary' : idx === 1 ? 'success' : 'warning'} sx={{ fontWeight: 700 }} />
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {b.count} {b.count === 1 ? 'account' : 'accounts'}
+                                            </Typography>
+                                        </Box>
+                                        <Typography variant="subtitle1" fontWeight={800} color="primary.main">
+                                            ${Number(b.total_balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </Typography>
+                                    </Box>
+                                ))}
+                            </Stack>
+                        </Card>
+                    </Grid>
+                </Grid>
+            )}
 
             {/* My Accounts Grid */}
             <Typography variant="h5" fontWeight={700} mb={2}>

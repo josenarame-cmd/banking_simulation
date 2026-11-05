@@ -135,7 +135,7 @@ class DatabaseSeeder extends Seeder
 
         $instructor = User::create([
             'name' => 'Cyprien Safari',
-            'email' => 'officer@banking.com',
+            'email' => 'safaricyprien@gmail.com',
             'phone' => '+250788333444',
             'role' => 'officer',
             'status' => 'active',

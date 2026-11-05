@@ -97,7 +97,7 @@ ApexCore is a modern, enterprise-grade Core Banking simulation engine built with
 | Role | Bank Job Title | Email | Password | Access Level |
 |---|---|---|---|---|
 | `admin` | **System Administrator (Jose Narame)** | `josenarame@gmail.com` | `password123` | Full Core Banking administration, interest engine, fees, users |
-| `officer` | **Compliance Officer** | `officer@banking.com` | `password123` | High-value approvals (> \$10k), audit logs, ledger reconciliation, reports |
+| `officer` | **Compliance Officer (Cyprien Safari)** | `safaricyprien@gmail.com` | `password123` | High-value approvals (> \$10k), audit logs, ledger reconciliation, reports |
 | `customer` | **Banking Customer (James Carter)** | `james.carter@banking.com` | `password123` | Accounts, transfers, deposits, withdrawals, loans, scheduled payments |
 | `customer` | **Banking Customer (Jane Smith)** | `jane.smith@banking.com` | `password123` | P2P transfer recipient, simulated accounts |
 

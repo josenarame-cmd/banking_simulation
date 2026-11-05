@@ -425,11 +425,11 @@ export default function LandingPage() {
                                     />
                                     <Chip
                                         avatar={<Avatar sx={{ bgcolor: '#10b981', color: '#fff' }}>O</Avatar>}
-                                        label="Compliance Officer"
+                                        label="Compliance Officer (Cyprien Safari)"
                                         clickable
                                         color="success"
                                         variant="filled"
-                                        onClick={() => handleQuickLogin('officer@banking.com', 'password123')}
+                                        onClick={() => handleQuickLogin('safaricyprien@gmail.com', 'password123')}
                                         sx={{ fontWeight: 700, fontSize: '0.78rem' }}
                                     />
                                     <Chip

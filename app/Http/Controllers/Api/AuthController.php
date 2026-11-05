@@ -12,6 +12,7 @@ use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -43,7 +44,7 @@ class AuthController extends Controller
             'phone' => $validated['phone'] ?? null,
             'role' => $role,
             'status' => 'active',
-            'email_verified_at' => now(), // simulated email verification
+            'email_verified_at' => null, // Pending verification
         ]);
 
         UserProfile::create([
@@ -52,6 +53,17 @@ class AuthController extends Controller
             'date_of_birth' => $validated['date_of_birth'] ?? null,
             'identification_number' => $validated['identification_number'] ?? null,
         ]);
+
+        // Generate email verification code and notification
+        $code = strval(rand(100000, 999999));
+        Cache::put("email_verification_code_{$user->id}", $code, now()->addMinutes(30));
+
+        NotificationService::send(
+            $user->id,
+            'Email Verification Code',
+            "Welcome to ApexCore Banking! Your 6-digit email verification code is: {$code}.",
+            'security'
+        );
 
         // Automatically open a default Checking Account with $1,000 simulated welcome bonus!
         $checkingType = AccountType::where('code', 'checking')->first();
@@ -79,6 +91,7 @@ class AuthController extends Controller
             'status' => 'success',
             'message' => 'Registration successful! Your welcome checking account has been established.',
             'token' => $token,
+            'verification_code' => $code,
             'user' => $user->load(['profile', 'accounts']),
         ], 201);
     }
@@ -242,6 +255,105 @@ class AuthController extends Controller
         AuditLogService::log('PASSWORD_CHANGED', "User {$user->email} changed account password.", 'User', $user->id, null, $user->id);
 
         return response()->json(['status' => 'success', 'message' => 'Password changed successfully.']);
+    }
+
+    /**
+     * Send or resend simulated email verification code.
+     */
+    public function sendVerificationEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'status' => 'info',
+                'message' => 'Email address is already verified.',
+                'email_verified_at' => $user->email_verified_at,
+            ]);
+        }
+
+        // Generate 6-digit verification code
+        $code = strval(rand(100000, 999999));
+        Cache::put("email_verification_code_{$user->id}", $code, now()->addMinutes(30));
+
+        // Create in-app notification so user can see it in their notification bell
+        NotificationService::send(
+            $user->id,
+            'Email Verification Code',
+            "Your email verification code is: {$code}. It is valid for 30 minutes.",
+            'security'
+        );
+
+        AuditLogService::log(
+            'EMAIL_VERIFICATION_SENT',
+            "Email verification code issued for {$user->email}.",
+            'User',
+            $user->id,
+            null,
+            $user->id
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Verification code sent to {$user->email}.",
+            'code' => $code,
+            'expires_in_minutes' => 30,
+        ]);
+    }
+
+    /**
+     * Verify email with 6-digit code or direct confirmation.
+     */
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json([
+                'status' => 'info',
+                'message' => 'Email address is already verified.',
+                'user' => $user->load(['profile', 'accounts.accountType']),
+            ]);
+        }
+
+        $validated = $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        $cachedCode = Cache::get("email_verification_code_{$user->id}");
+
+        // Accept the cached code or standard simulation master code '123456'
+        if ($validated['code'] !== $cachedCode && $validated['code'] !== '123456') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid or expired verification code. Please request a new code.',
+            ], 422);
+        }
+
+        $user->markEmailAsVerified();
+        Cache::forget("email_verification_code_{$user->id}");
+
+        NotificationService::send(
+            $user->id,
+            'Email Address Verified',
+            'Your email address has been successfully verified. Your account security status is now active.',
+            'success'
+        );
+
+        AuditLogService::log(
+            'EMAIL_VERIFIED',
+            "User {$user->email} successfully verified their email address.",
+            'User',
+            $user->id,
+            null,
+            $user->id
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Email verified successfully!',
+            'user' => $user->fresh(['profile', 'accounts.accountType']),
+        ]);
     }
 }
 

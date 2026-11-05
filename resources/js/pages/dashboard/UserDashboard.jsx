@@ -264,6 +264,27 @@ export default function UserDashboard() {
                 </Alert>
             )}
 
+            {/* Unverified Email Warning Alert */}
+            {!user?.email_verified_at && (
+                <Alert
+                    severity="warning"
+                    sx={{ mb: 3, borderRadius: 2 }}
+                    action={
+                        <Button
+                            color="inherit"
+                            size="small"
+                            component={RouterLink}
+                            to="/profile"
+                            sx={{ fontWeight: 700 }}
+                        >
+                            Verify Email
+                        </Button>
+                    }
+                >
+                    Your email address (<strong>{user?.email}</strong>) is currently unverified. Please verify your email to ensure maximum security clearance.
+                </Alert>
+            )}
+
             {/* Header Greeting & Quick Actions */}
             <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} mb={4} gap={2}>
                 <Box>

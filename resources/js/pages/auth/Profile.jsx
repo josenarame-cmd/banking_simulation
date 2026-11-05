@@ -11,10 +11,20 @@ import {
     Grid,
     Avatar,
     Divider,
-    CircularProgress
+    CircularProgress,
+    Chip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Stack,
+    Tooltip
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import LockResetIcon from '@mui/icons-material/LockReset';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import MarkEmailReadIcon from '@mui/icons-material/MarkEmailRead';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/client';
 
@@ -37,6 +47,55 @@ export default function Profile() {
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Email verification states
+    const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+    const [verifyCode, setVerifyCode] = useState('');
+    const [verifyLoading, setVerifyLoading] = useState(false);
+    const [verifyMsg, setVerifyMsg] = useState('');
+    const [verifyErr, setVerifyErr] = useState('');
+    const [simulatedCode, setSimulatedCode] = useState('');
+
+    const handleSendVerification = async () => {
+        setVerifyLoading(true);
+        setVerifyErr('');
+        setVerifyMsg('');
+        try {
+            const res = await api.post('/email/send-verification');
+            setVerifyMsg(res.data.message || 'Verification code dispatched to your email.');
+            if (res.data.code) {
+                setSimulatedCode(res.data.code);
+                setVerifyCode(res.data.code); // Pre-fill convenience for simulated environment
+            }
+        } catch (err) {
+            setVerifyErr(err.response?.data?.message || 'Failed to dispatch verification code.');
+        } finally {
+            setVerifyLoading(false);
+        }
+    };
+
+    const handleConfirmVerification = async () => {
+        if (!verifyCode || verifyCode.length !== 6) {
+            setVerifyErr('Please enter the 6-digit verification code.');
+            return;
+        }
+        setVerifyLoading(true);
+        setVerifyErr('');
+        try {
+            const res = await api.post('/email/verify', { code: verifyCode });
+            setVerifyMsg(res.data.message || 'Email verified successfully!');
+            await refreshUser();
+            setTimeout(() => {
+                setVerifyModalOpen(false);
+                setVerifyMsg('');
+                setSimulatedCode('');
+            }, 1500);
+        } catch (err) {
+            setVerifyErr(err.response?.data?.message || 'Verification failed. Please check the code.');
+        } finally {
+            setVerifyLoading(false);
+        }
+    };
 
     const handleAvatarChange = (e) => {
         const file = e.target.files[0];
@@ -147,12 +206,56 @@ export default function Profile() {
                                         />
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            fullWidth
-                                            label="Email (Read-only)"
-                                            value={user?.email || ''}
-                                            disabled
-                                        />
+                                        <Box>
+                                            <TextField
+                                                fullWidth
+                                                label="Email Address"
+                                                value={user?.email || ''}
+                                                disabled
+                                                helperText={
+                                                    user?.email_verified_at
+                                                        ? `Verified on ${new Date(user.email_verified_at).toLocaleDateString()}`
+                                                        : 'Email is unverified. Verification required for full security clearance.'
+                                                }
+                                                FormHelperTextProps={{
+                                                    sx: { color: user?.email_verified_at ? 'success.main' : 'warning.main', fontWeight: 600 }
+                                                }}
+                                            />
+                                            <Box display="flex" alignItems="center" gap={1} mt={1}>
+                                                {user?.email_verified_at ? (
+                                                    <Chip
+                                                        icon={<VerifiedIcon />}
+                                                        label="Verified Email"
+                                                        color="success"
+                                                        size="small"
+                                                        sx={{ fontWeight: 700 }}
+                                                    />
+                                                ) : (
+                                                    <>
+                                                        <Chip
+                                                            icon={<WarningAmberIcon />}
+                                                            label="Unverified"
+                                                            color="warning"
+                                                            size="small"
+                                                            sx={{ fontWeight: 700 }}
+                                                        />
+                                                        <Button
+                                                            size="small"
+                                                            variant="contained"
+                                                            color="primary"
+                                                            startIcon={<MarkEmailReadIcon />}
+                                                            onClick={() => {
+                                                                setVerifyModalOpen(true);
+                                                                handleSendVerification();
+                                                            }}
+                                                            sx={{ textTransform: 'none', py: 0.3, px: 1.5, fontSize: '0.75rem', fontWeight: 700 }}
+                                                        >
+                                                            Verify Now
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </Box>
+                                        </Box>
                                     </Grid>
                                     <Grid item xs={12} sm={6}>
                                         <TextField
@@ -247,6 +350,76 @@ export default function Profile() {
                     </Card>
                 </Grid>
             </Grid>
+
+            {/* Email Verification Dialog */}
+            <Dialog
+                open={verifyModalOpen}
+                onClose={() => setVerifyModalOpen(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <MarkEmailReadIcon color="primary" />
+                    Verify Email Address
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" mb={2}>
+                        We have dispatched a simulated 6-digit confirmation code to <strong>{user?.email}</strong>.
+                    </Typography>
+
+                    {simulatedCode && (
+                        <Alert severity="info" sx={{ mb: 2, fontWeight: 600 }}>
+                            Simulated OTP Code: <strong>{simulatedCode}</strong>
+                            <Typography variant="caption" display="block" color="text.secondary">
+                                (In a live environment this is delivered via SMTP. For lab testing, it is automatically displayed here & in notifications.)
+                            </Typography>
+                        </Alert>
+                    )}
+
+                    {verifyMsg && <Alert severity="success" sx={{ mb: 2 }}>{verifyMsg}</Alert>}
+                    {verifyErr && <Alert severity="error" sx={{ mb: 2 }}>{verifyErr}</Alert>}
+
+                    <TextField
+                        fullWidth
+                        label="6-Digit Verification Code"
+                        value={verifyCode}
+                        onChange={(e) => setVerifyCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                        placeholder="e.g. 123456"
+                        inputProps={{ maxLength: 6, style: { fontSize: '1.4rem', letterSpacing: '0.4rem', textAlign: 'center' } }}
+                        margin="normal"
+                        disabled={verifyLoading}
+                        autoFocus
+                    />
+
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mt={1}>
+                        <Button
+                            size="small"
+                            onClick={handleSendVerification}
+                            disabled={verifyLoading}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Resend Code
+                        </Button>
+                        <Typography variant="caption" color="text.secondary">
+                            Expires in 30 minutes
+                        </Typography>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={() => setVerifyModalOpen(false)} color="inherit">
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleConfirmVerification}
+                        disabled={verifyLoading || verifyCode.length !== 6}
+                        sx={{ fontWeight: 700 }}
+                    >
+                        {verifyLoading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Verification'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 }

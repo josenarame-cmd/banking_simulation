@@ -35,6 +35,9 @@ Route::post('/login', [AuthController::class, 'login']);
 // Public Account Types (for registration preview)
 Route::get('/account-types', [AccountTypeController::class, 'index']);
 
+// Loan Document Stream (authenticates token via header OR ?token= query parameter)
+Route::get('/loan-documents/{id}/view', [LoanController::class, 'viewDocument']);
+
 // Protected Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth & Profile
@@ -90,7 +93,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/loans/{id}/approve', [LoanController::class, 'approve'])->middleware('role:admin');
     Route::post('/loans/{id}/reject', [LoanController::class, 'reject'])->middleware('role:admin');
     Route::get('/loan-repayments', [LoanRepaymentController::class, 'index'])->middleware('role:admin,officer');
-    Route::get('/loan-documents/{id}/view', [LoanController::class, 'viewDocument']);
 
     // Scheduled Transfers
     Route::get('/my-scheduled-transfers', [ScheduledTransferController::class, 'index']);

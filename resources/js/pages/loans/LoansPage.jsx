@@ -49,6 +49,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import GavelIcon from '@mui/icons-material/Gavel';
 import SearchIcon from '@mui/icons-material/Search';
 import DescriptionIcon from '@mui/icons-material/Description';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import CloseIcon from '@mui/icons-material/Close';
 
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -121,6 +123,17 @@ export default function LoansPage() {
     const [viewLoan, setViewLoan]               = useState(null);
     const [scheduleLoading, setScheduleLoading] = useState(false);
     const [openingDocId, setOpeningDocId]       = useState(null);
+
+    // ── Document In-App Reader Modal ──────────────────────────────
+    const [previewDoc, setPreviewDoc]           = useState(null);
+
+    const getDocumentUrl = (docId) => {
+        if (!docId) return '';
+        const token = localStorage.getItem('banking_token') || '';
+        const isSubfolder = window.location.pathname.startsWith('/banking/public');
+        const base = isSubfolder ? '/banking/public/api' : '/api';
+        return `${base}/loan-documents/${docId}/view?token=${encodeURIComponent(token)}`;
+    };
 
     const showingAll = isStaff && staffTab === 0;
 
@@ -599,15 +612,28 @@ export default function LoansPage() {
                                     key={doc.id}
                                     sx={{ border: 1, borderColor: 'divider', borderRadius: 2, mb: 1 }}
                                     secondaryAction={
-                                        <Button
-                                            size="small"
-                                            variant="outlined"
-                                            onClick={() => handleOpenDocument(doc)}
-                                            disabled={openingDocId === doc.id}
-                                            startIcon={openingDocId === doc.id ? <CircularProgress size={14} /> : <DescriptionIcon />}
-                                        >
-                                            {openingDocId === doc.id ? 'Loading...' : 'Open'}
-                                        </Button>
+                                        <Stack direction="row" spacing={1}>
+                                            <Button
+                                                size="small"
+                                                variant="contained"
+                                                color="primary"
+                                                startIcon={<DescriptionIcon />}
+                                                onClick={() => setPreviewDoc(doc)}
+                                            >
+                                                Read Document
+                                            </Button>
+                                            <Tooltip title="Open in new browser tab">
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    href={getDocumentUrl(doc.id)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <OpenInNewIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Stack>
                                     }
                                 >
                                     <ListItemIcon>
@@ -986,15 +1012,28 @@ export default function LoansPage() {
                                         key={doc.id}
                                         sx={{ border: 1, borderColor: 'divider', borderRadius: 2, mb: 0.5 }}
                                         secondaryAction={
-                                            <Button
-                                                size="small"
-                                                variant="outlined"
-                                                onClick={() => handleOpenDocument(doc)}
-                                                disabled={openingDocId === doc.id}
-                                                startIcon={openingDocId === doc.id ? <CircularProgress size={14} /> : <DescriptionIcon />}
-                                            >
-                                                {openingDocId === doc.id ? 'Loading...' : 'Open'}
-                                            </Button>
+                                            <Stack direction="row" spacing={1}>
+                                                <Button
+                                                    size="small"
+                                                    variant="contained"
+                                                    color="primary"
+                                                    startIcon={<DescriptionIcon />}
+                                                    onClick={() => setPreviewDoc(doc)}
+                                                >
+                                                    Read Document
+                                                </Button>
+                                                <Tooltip title="Open in new browser tab">
+                                                    <IconButton
+                                                        size="small"
+                                                        color="primary"
+                                                        href={getDocumentUrl(doc.id)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <OpenInNewIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Stack>
                                         }
                                     >
                                         <ListItemIcon>
@@ -1012,6 +1051,63 @@ export default function LoansPage() {
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setViewLoan(null)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ═══════════════════════════════════════════════════════════
+                IN-APP DOCUMENT VIEWER / READER MODAL
+            ═══════════════════════════════════════════════════════════ */}
+            <Dialog
+                open={Boolean(previewDoc)}
+                onClose={() => setPreviewDoc(null)}
+                maxWidth="lg"
+                fullWidth
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5 }}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <DescriptionIcon color="primary" />
+                        <Box>
+                            <Typography variant="subtitle1" fontWeight={700}>
+                                {previewDoc?.original_name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                Type: <strong>{previewDoc?.document_type_label || previewDoc?.document_type}</strong>
+                                {previewDoc?.file_size ? ` • ${formatBytes(previewDoc.file_size)}` : ''}
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<OpenInNewIcon />}
+                            href={getDocumentUrl(previewDoc?.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Open in New Tab
+                        </Button>
+                        <IconButton size="small" onClick={() => setPreviewDoc(null)}>
+                            <CloseIcon />
+                        </IconButton>
+                    </Box>
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 0, height: '75vh', bgcolor: (theme) => theme.palette.mode === 'light' ? '#f1f5f9' : '#0f172a' }}>
+                    {previewDoc && (
+                        <iframe
+                            src={getDocumentUrl(previewDoc.id)}
+                            title={previewDoc.original_name}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 'none', display: 'block' }}
+                        />
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 1.5, justifyContent: 'space-between' }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
+                        Use zoom, scroll, and print controls inside the reader to review all client-submitted documents.
+                    </Typography>
+                    <Button variant="contained" onClick={() => setPreviewDoc(null)}>Done Reading</Button>
                 </DialogActions>
             </Dialog>
         </Container>

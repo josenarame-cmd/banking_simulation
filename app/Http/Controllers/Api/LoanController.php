@@ -196,27 +196,48 @@ class LoanController extends Controller
 
     /**
      * Stream or download supporting document (Admin, Officer, or Applicant).
+     * Accepts authentication via Sanctum Bearer header OR ?token= query parameter.
      */
     public function viewDocument(Request $request, int $id)
     {
+        // Resolve user via Bearer token or ?token= query parameter
+        $tokenString = $request->bearerToken() ?: $request->query('token');
+        $user = null;
+        if ($tokenString) {
+            $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($tokenString);
+            if ($tokenModel) {
+                $user = $tokenModel->tokenable;
+            }
+        }
+        if (!$user) {
+            $user = $request->user();
+        }
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         $doc = LoanDocument::with('loan')->findOrFail($id);
-        $user = $request->user();
 
         if (!$user->isAdmin() && !$user->isOfficer() && $doc->loan->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
-        if (!Storage::disk('public')->exists($doc->file_path)) {
-            return response()->json(['message' => 'Document file not found on disk.'], 404);
+        $filePath = storage_path('app/public/' . $doc->file_path);
+        if (!file_exists($filePath)) {
+            if (Storage::disk('public')->exists($doc->file_path)) {
+                $filePath = Storage::disk('public')->path($doc->file_path);
+            } else {
+                return response()->json(['message' => 'Document file not found on disk.'], 404);
+            }
         }
 
-        return Storage::disk('public')->response(
-            $doc->file_path,
-            $doc->original_name,
-            [
-                'Content-Disposition' => 'inline; filename="' . $doc->original_name . '"',
-                'Cache-Control' => 'no-cache, private',
-            ]
-        );
+        $mimeType = $doc->mime_type ?: (str_ends_with(strtolower($doc->original_name), '.pdf') ? 'application/pdf' : 'application/octet-stream');
+
+        return response()->file($filePath, [
+            'Content-Type'        => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $doc->original_name . '"',
+            'Cache-Control'       => 'no-store, no-cache, must-revalidate',
+        ]);
     }
 }

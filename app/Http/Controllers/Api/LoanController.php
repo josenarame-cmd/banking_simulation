@@ -5,29 +5,38 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Models\Loan;
+use App\Models\LoanDocument;
 use App\Services\LoanService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class LoanController extends Controller
 {
     /**
-     * Submit a loan application.
+     * Submit a loan application with optional supporting documents.
      */
     public function apply(Request $request): JsonResponse
     {
         $request->validate([
-            'account_id' => 'required|exists:bank_accounts,id',
+            'account_id'      => 'required|exists:bank_accounts,id',
             'principal_amount' => 'required|numeric|min:100',
-            'term_months' => 'required|integer|min:1|max:60',
-            'purpose' => 'required|string|max:500',
-            'document' => 'nullable|file|mimes:pdf,jpg,png,jpeg|max:5120', // 5MB max
+            'term_months'     => 'required|integer|min:1|max:60',
+            'purpose'         => 'required|string|max:500',
+            // Single legacy field (kept for backwards compat)
+            'document'        => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            // Multiple documents
+            'documents'           => 'nullable|array|max:10',
+            'documents.*'         => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'document_types'      => 'nullable|array',
+            'document_types.*'    => 'nullable|string|max:60',
         ]);
 
         $account = BankAccount::findOrFail($request->account_id);
-        $user = $request->user();
+        $user    = $request->user();
 
+        // Handle legacy single-document field (backward compat)
         $documentPath = null;
         if ($request->hasFile('document')) {
             $documentPath = $request->file('document')->store('loan_documents', 'public');
@@ -43,10 +52,38 @@ class LoanController extends Controller
                 $documentPath
             );
 
+            // Handle multiple new-style document uploads
+            if ($request->hasFile('documents')) {
+                foreach ($request->file('documents') as $index => $file) {
+                    $docType  = $request->input("document_types.$index", 'other');
+                    $path     = $file->store("loan_docs/{$loan->id}", 'public');
+                    LoanDocument::create([
+                        'loan_id'       => $loan->id,
+                        'document_type' => $docType,
+                        'file_path'     => $path,
+                        'original_name' => $file->getClientOriginalName(),
+                        'file_size'     => $file->getSize(),
+                        'mime_type'     => $file->getMimeType(),
+                    ]);
+                }
+            }
+
+            // Also store the legacy single doc as a LoanDocument record
+            if ($documentPath) {
+                LoanDocument::create([
+                    'loan_id'       => $loan->id,
+                    'document_type' => 'other',
+                    'file_path'     => $documentPath,
+                    'original_name' => $request->file('document')->getClientOriginalName(),
+                    'file_size'     => $request->file('document')->getSize(),
+                    'mime_type'     => $request->file('document')->getMimeType(),
+                ]);
+            }
+
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'Loan application submitted successfully. It is now awaiting administrative review.',
-                'loan' => $loan->load('account'),
+                'loan'    => $loan->load(['account', 'loanDocuments']),
             ], 201);
         } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
@@ -58,23 +95,23 @@ class LoanController extends Controller
      */
     public function myLoans(Request $request): JsonResponse
     {
-        $loans = Loan::with(['account', 'schedules', 'repayments'])
+        $loans = Loan::with(['account', 'schedules', 'repayments', 'loanDocuments'])
             ->where('user_id', $request->user()->id)
             ->orderBy('id', 'desc')
             ->get();
 
         return response()->json([
             'status' => 'success',
-            'data' => $loans,
+            'data'   => $loans,
         ]);
     }
 
     /**
-     * List all loans (admin & instructor).
+     * List all loans (admin & officer).
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Loan::with(['user', 'account', 'approver', 'schedules']);
+        $query = Loan::with(['user', 'account', 'approver', 'schedules', 'loanDocuments']);
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -86,33 +123,34 @@ class LoanController extends Controller
     }
 
     /**
-     * Show single loan details with complete installment schedule.
+     * Show single loan details with complete installment schedule and documents.
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $loan = Loan::with(['user', 'account', 'approver', 'schedules', 'repayments.transaction'])
+        $loan = Loan::with(['user', 'account', 'approver', 'schedules', 'repayments.transaction', 'loanDocuments'])
             ->findOrFail($id);
 
         $user = $request->user();
-        if (!$user->isAdmin() && !$user->isInstructor() && $loan->user_id !== $user->id) {
+        if (!$user->isAdmin() && !$user->isOfficer() && $loan->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
         return response()->json([
             'status' => 'success',
-            'loan' => $loan,
+            'loan'   => $loan,
         ]);
     }
 
     /**
-     * Approve and disburse loan (Admin / Instructor).
+     * Approve and disburse loan — ADMIN ONLY (enforced by route middleware).
      */
     public function approve(Request $request, int $id): JsonResponse
     {
         $request->validate([
             'approved_principal' => 'nullable|numeric|min:100',
-            'approved_rate' => 'nullable|numeric|min:0',
-            'approved_term' => 'nullable|integer|min:1|max:60',
+            'approved_rate'      => 'nullable|numeric|min:0',
+            'approved_term'      => 'nullable|integer|min:1|max:60',
+            'notes'              => 'nullable|string|max:1000',
         ]);
 
         $loan = Loan::findOrFail($id);
@@ -127,9 +165,9 @@ class LoanController extends Controller
             );
 
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => "Loan #{$loan->id} approved and \${$approvedLoan->principal_amount} disbursed successfully.",
-                'loan' => $approvedLoan,
+                'loan'    => $approvedLoan,
             ]);
         } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
@@ -137,7 +175,7 @@ class LoanController extends Controller
     }
 
     /**
-     * Reject loan application.
+     * Reject loan application — ADMIN ONLY (enforced by route middleware).
      */
     public function reject(Request $request, int $id): JsonResponse
     {
@@ -147,13 +185,12 @@ class LoanController extends Controller
         try {
             $rejectedLoan = LoanService::reject($loan, $request->user(), $request->reason);
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => "Loan #{$loan->id} has been rejected.",
-                'loan' => $rejectedLoan,
+                'loan'    => $rejectedLoan,
             ]);
         } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
         }
     }
 }
-

@@ -135,9 +135,10 @@ The platform is pre-seeded with standardized banking accounts representing the t
 - Detailed transaction inspection (sender, recipient, amount, timestamp, reason).
 - Actions: **Approve** (posts debits/credits to general ledger and completes transfer) or **Reject** (returns funds and releases hold).
 
-### 4.7 Automated Loan Simulation Engine
-- **Loan Applications**: Customers apply with requested principal amount, term in months, and purpose.
-- **Administrative Evaluation**: Staff approves or rejects applications with custom review notes.
+### 4.7 Automated Loan Simulation Engine & Document Verification
+- **Loan Applications with Document Uploads**: Customers apply with requested principal amount, term in months, purpose, and attach supporting documentation (National ID, Pay Slips, Employment Letters, Bank Statements).
+- **Compliance Officer Verification (Read-Only Review)**: Officers inspect loan requests and review client-submitted documentation to evaluate authenticity and creditworthiness without approval authority.
+- **Administrative Decision & Disbursement (Admin-Only)**: Only Administrators have permission to approve (which triggers automatic principal disbursement into the designated account) or reject loan applications with feedback.
 - **Amortization Schedule Generation**: Generates monthly installment breakdown calculating principal vs. interest components.
 - **Loan Repayments**: Customers submit repayments with automated ledger balance reduction.
 
@@ -173,7 +174,7 @@ The platform is pre-seeded with standardized banking accounts representing the t
 
 ## 🗄 5. Complete Database Schema Dictionary
 
-The system operates across **23 optimized relational database tables**:
+The system operates across **24 optimized relational database tables**:
 
 ```
  1. users                    - Core user records, role ('admin','officer','customer'), status, email_verified_at
@@ -189,16 +190,17 @@ The system operates across **23 optimized relational database tables**:
 11. fee_types                - Configurable fee rules (fixed vs percentage, applicable account types)
 12. fees                     - Applied banking fees linked to transactions and bank accounts
 13. loans                    - Customer loan applications, approved amounts, interest rates, total payables
-14. loan_schedules           - Month-by-month repayment amortization schedule installments
-15. loan_repayments          - Completed loan repayment records tracking principal vs interest split
-16. approvals                - Dual-control approval requests for quarantined high-value transactions
-17. notifications            - User alerts, security notifications, and simulated OTP delivery
-18. audit_logs               - Forensic security audit trail tracking every system mutation
-19. login_attempts           - Security tracker for successful and failed authentication attempts
-20. idempotency_keys         - Cryptographic tokens preventing duplicate transaction execution
-21. system_settings          - Key-value configuration store (approval thresholds, daily limits)
-22. sessions                 - Database session storage table
-23. personal_access_tokens   - Laravel Sanctum API Bearer tokens with expiration tracking
+14. loan_documents           - Supporting loan verification files (National ID, Pay Slips, Letters)
+15. loan_schedules           - Month-by-month repayment amortization schedule installments
+16. loan_repayments          - Completed loan repayment records tracking principal vs interest split
+17. approvals                - Dual-control approval requests for quarantined high-value transactions
+18. notifications            - User alerts, security notifications, and simulated OTP delivery
+19. audit_logs               - Forensic security audit trail tracking every system mutation
+20. login_attempts           - Security tracker for successful and failed authentication attempts
+21. idempotency_keys         - Cryptographic tokens preventing duplicate transaction execution
+22. system_settings          - Key-value configuration store (approval thresholds, daily limits)
+23. sessions                 - Database session storage table
+24. personal_access_tokens   - Laravel Sanctum API Bearer tokens with expiration tracking
 ```
 
 ---
@@ -246,14 +248,14 @@ The system operates across **23 optimized relational database tables**:
 - `POST /api/approvals/{id}/reject` — Reject and release funds hold
 
 ### Loans & Amortization
-- `POST /api/loans/apply` — Submit loan request
-- `GET  /api/my-loans` — Customer loan list and amortization schedules
-- `GET  /api/loans/{id}` — Loan details with installment schedule
+- `POST /api/loans/apply` — Submit loan request with supporting documents (National ID, Pay Slips, etc.)
+- `GET  /api/my-loans` — Customer loan list with amortization schedules and documents
+- `GET  /api/loans/{id}` — Loan details with schedule and uploaded verification documents *(Admin, Officer & Applicant)*
 - `POST /api/loans/{id}/repay` — Make installment payment
-- `GET  /api/loans` — Staff queue of loan applications
-- `POST /api/loans/{id}/approve` — Approve and disburse loan funds
-- `POST /api/loans/{id}/reject` — Reject loan application
-- `GET  /api/loan-repayments` — Staff view of repayment history
+- `GET  /api/loans` — Staff queue of loan applications *(Admin & Officer)*
+- `POST /api/loans/{id}/approve` — Approve loan and disburse principal funds *(Admin only)*
+- `POST /api/loans/{id}/reject` — Reject loan application with reasons *(Admin only)*
+- `GET  /api/loan-repayments` — Staff view of repayment history *(Admin & Officer)*
 
 ### Scheduled Recurring Transfers
 - `GET  /api/my-scheduled-transfers` — Customer active standing orders

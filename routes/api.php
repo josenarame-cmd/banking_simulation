@@ -87,8 +87,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/loans/{id}', [LoanController::class, 'show']);
     Route::post('/loans/{id}/repay', [LoanRepaymentController::class, 'repay']);
     Route::get('/loans', [LoanController::class, 'index'])->middleware('role:admin,officer');
-    Route::post('/loans/{id}/approve', [LoanController::class, 'approve'])->middleware('role:admin,officer');
-    Route::post('/loans/{id}/reject', [LoanController::class, 'reject'])->middleware('role:admin,officer');
+    Route::post('/loans/{id}/approve', [LoanController::class, 'approve'])->middleware('role:admin');
+    Route::post('/loans/{id}/reject', [LoanController::class, 'reject'])->middleware('role:admin');
     Route::get('/loan-repayments', [LoanRepaymentController::class, 'index'])->middleware('role:admin,officer');
 
     // Scheduled Transfers

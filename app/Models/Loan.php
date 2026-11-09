@@ -63,5 +63,10 @@ class Loan extends Model
     {
         return $this->hasMany(LoanRepayment::class)->orderBy('payment_date', 'desc');
     }
+
+    public function loanDocuments()
+    {
+        return $this->hasMany(LoanDocument::class)->orderBy('id');
+    }
 }
 

@@ -97,8 +97,8 @@ class LoanService
             throw new Exception("Only pending loans can be approved (current status: {$loan->status}).");
         }
 
-        if (!$approver->isAdmin() && !$approver->isInstructor()) {
-            throw new Exception("Unauthorized: Only administrators or instructors can approve loans.");
+        if (!$approver->isAdmin()) {
+            throw new Exception("Unauthorized: Only administrators have permission to approve and disburse loans.");
         }
 
         $principal = $approvedPrincipal ?? (float) $loan->principal_amount;
@@ -205,6 +205,10 @@ class LoanService
      */
     public static function reject(Loan $loan, User $approver, string $reason): Loan
     {
+        if (!$approver->isAdmin()) {
+            throw new Exception("Unauthorized: Only administrators have permission to reject loans.");
+        }
+
         if ($loan->status !== 'pending') {
             throw new Exception("Only pending loans can be rejected.");
         }

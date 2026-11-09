@@ -513,12 +513,14 @@ export default function LoansPage() {
                                                 {isStaff && showingAll && (
                                                     <Button
                                                         size="small"
-                                                        variant={isAdmin && loan.status === 'pending' ? 'contained' : 'outlined'}
-                                                        color={isAdmin && loan.status === 'pending' ? 'warning' : 'primary'}
+                                                        variant={loan.status === 'pending' ? 'contained' : 'outlined'}
+                                                        color={isAdmin && loan.status === 'pending' ? 'primary' : 'inherit'}
                                                         startIcon={isAdmin ? <GavelIcon /> : <VisibilityIcon />}
                                                         onClick={() => handleOpenReview(loan.id)}
                                                     >
-                                                        {isAdmin ? (loan.status === 'pending' ? 'Review & Decide' : 'View Details') : 'Review'}
+                                                        {loan.status === 'pending'
+                                                            ? (isAdmin ? 'Review & Decide' : 'Review (Read-Only)')
+                                                            : 'View Details'}
                                                     </Button>
                                                 )}
                                             </Stack>
@@ -642,29 +644,37 @@ export default function LoansPage() {
 
                     {/* ── Admin-only: Approve / Reject Actions ── */}
                     {isAdmin && reviewLoan?.status === 'pending' && (
-                        <>
-                            <Divider sx={{ my: 2 }} />
-                            <Typography variant="subtitle2" fontWeight={700} color="text.secondary" gutterBottom>
-                                ADMINISTRATIVE DECISION
-                            </Typography>
-                            <Tabs value={actionTab} onChange={(_, v) => setActionTab(v)} sx={{ mb: 2 }}>
-                                <Tab label="✅ Approve Loan" />
-                                <Tab label="❌ Reject Loan" />
-                            </Tabs>
+                        <Paper variant="outlined" sx={{ p: 2.5, my: 2, borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'light' ? '#f8fafc' : '#1e293b' }}>
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5} flexWrap="wrap" gap={1}>
+                                <Box>
+                                    <Typography variant="subtitle2" fontWeight={800}>
+                                        ADMINISTRATIVE DECISION
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Examine applicant documentation above, then record your approval or rejection decision.
+                                    </Typography>
+                                </Box>
+                                <Tabs value={actionTab} onChange={(_, v) => setActionTab(v)} sx={{ minHeight: 36 }}>
+                                    <Tab label="✅ Approve & Disburse" sx={{ minHeight: 36, fontWeight: 700 }} />
+                                    <Tab label="❌ Reject Application" sx={{ minHeight: 36, fontWeight: 700, color: 'error.main' }} />
+                                </Tabs>
+                            </Box>
+
+                            <Divider sx={{ my: 1.5 }} />
+
                             {actionTab === 0 && (
                                 <Box>
-                                    <Alert severity="info" sx={{ mb: 2 }}>
-                                        Approving will disburse <strong>${Number(reviewLoan?.principal_amount || 0).toLocaleString()}</strong> into
-                                        account <strong>{reviewLoan?.account?.account_number}</strong>.
+                                    <Alert severity="success" sx={{ mb: 2 }}>
+                                        <strong>Disbursement Target:</strong> Approving will disburse <strong>${Number(reviewLoan?.principal_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> directly into client account <strong>{reviewLoan?.account?.account_number}</strong>.
                                     </Alert>
                                     <TextField
                                         fullWidth
                                         multiline
                                         rows={2}
-                                        label="Approval Notes (optional)"
+                                        label="Reviewer Verification Notes (optional)"
                                         value={approveNotes}
                                         onChange={(e) => setApproveNotes(e.target.value)}
-                                        placeholder="e.g. Documents verified. Credit check passed."
+                                        placeholder="e.g. Identity and income verified through submitted documents. Approved without conditions."
                                         sx={{ mb: 2 }}
                                     />
                                     <Button
@@ -675,20 +685,24 @@ export default function LoansPage() {
                                         onClick={handleApproveLoan}
                                         disabled={actionSubmitting}
                                     >
-                                        Approve & Disburse Funds
+                                        Approve & Disburse ${Number(reviewLoan?.principal_amount || 0).toLocaleString()}
                                     </Button>
                                 </Box>
                             )}
+
                             {actionTab === 1 && (
                                 <Box>
+                                    <Alert severity="warning" sx={{ mb: 2 }}>
+                                        Rejecting this loan request will notify the applicant and mark the facility as declined.
+                                    </Alert>
                                     <TextField
                                         fullWidth
                                         multiline
                                         rows={3}
-                                        label="Rejection Reason *"
+                                        label="Reason for Rejection *"
                                         value={rejectReason}
                                         onChange={(e) => setRejectReason(e.target.value)}
-                                        placeholder="e.g. Insufficient income documentation. ID document could not be verified."
+                                        placeholder="e.g. Identity or proof of income document is unreadable or insufficient to meet risk requirements."
                                         sx={{ mb: 2 }}
                                         required
                                     />
@@ -700,11 +714,11 @@ export default function LoansPage() {
                                         onClick={handleRejectLoan}
                                         disabled={actionSubmitting}
                                     >
-                                        Reject Loan Application
+                                        Confirm Rejection
                                     </Button>
                                 </Box>
                             )}
-                        </>
+                        </Paper>
                     )}
 
                     {/* Officer notice: no actions */}
@@ -1099,11 +1113,40 @@ export default function LoansPage() {
                         />
                     )}
                 </DialogContent>
-                <DialogActions sx={{ p: 1.5, justifyContent: 'space-between' }}>
+                <DialogActions sx={{ p: 1.5, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
                         Use zoom, scroll, and print controls inside the reader to review all client-submitted documents.
                     </Typography>
-                    <Button variant="contained" onClick={() => setPreviewDoc(null)}>Done Reading</Button>
+                    <Stack direction="row" spacing={1}>
+                        {isAdmin && reviewLoan?.status === 'pending' && (
+                            <>
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    size="small"
+                                    onClick={() => {
+                                        setPreviewDoc(null);
+                                        setActionTab(1);
+                                    }}
+                                >
+                                    Reject Application
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="success"
+                                    size="small"
+                                    startIcon={<CheckCircleOutlineIcon />}
+                                    onClick={() => {
+                                        setPreviewDoc(null);
+                                        setActionTab(0);
+                                    }}
+                                >
+                                    Approve Loan
+                                </Button>
+                            </>
+                        )}
+                        <Button variant="outlined" onClick={() => setPreviewDoc(null)}>Done Reading</Button>
+                    </Stack>
                 </DialogActions>
             </Dialog>
         </Container>

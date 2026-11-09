@@ -120,6 +120,7 @@ export default function LoansPage() {
     // ── Schedule Viewer ───────────────────────────────────────────
     const [viewLoan, setViewLoan]               = useState(null);
     const [scheduleLoading, setScheduleLoading] = useState(false);
+    const [openingDocId, setOpeningDocId]       = useState(null);
 
     const showingAll = isStaff && staffTab === 0;
 
@@ -269,6 +270,24 @@ export default function LoansPage() {
             setActionError(err.response?.data?.message || 'Rejection failed.');
         } finally {
             setActionSubmitting(false);
+        }
+    };
+
+    // ── Open Document in browser ────────────────────────────────
+    const handleOpenDocument = async (doc) => {
+        setOpeningDocId(doc.id);
+        try {
+            const res = await api.get(`/loan-documents/${doc.id}/view`, {
+                responseType: 'blob',
+            });
+            const mimeType = doc.mime_type || 'application/pdf';
+            const blob = new Blob([res.data], { type: mimeType });
+            const fileUrl = window.URL.createObjectURL(blob);
+            window.open(fileUrl, '_blank');
+        } catch (err) {
+            alert('Failed to open document: ' + (err.response?.data?.message || err.message));
+        } finally {
+            setOpeningDocId(null);
         }
     };
 
@@ -583,12 +602,11 @@ export default function LoansPage() {
                                         <Button
                                             size="small"
                                             variant="outlined"
-                                            href={doc.download_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            startIcon={<DescriptionIcon />}
+                                            onClick={() => handleOpenDocument(doc)}
+                                            disabled={openingDocId === doc.id}
+                                            startIcon={openingDocId === doc.id ? <CircularProgress size={14} /> : <DescriptionIcon />}
                                         >
-                                            Open
+                                            {openingDocId === doc.id ? 'Loading...' : 'Open'}
                                         </Button>
                                     }
                                 >
@@ -956,6 +974,41 @@ export default function LoansPage() {
                             </TableBody>
                         </Table>
                     </TableContainer>
+
+                    {(viewLoan?.loan_documents?.length > 0) && (
+                        <Box mt={2}>
+                            <Typography variant="caption" fontWeight={700} color="text.secondary">
+                                SUBMITTED SUPPORTING DOCUMENTS
+                            </Typography>
+                            <List dense sx={{ mt: 0.5 }}>
+                                {viewLoan.loan_documents.map((doc) => (
+                                    <ListItem
+                                        key={doc.id}
+                                        sx={{ border: 1, borderColor: 'divider', borderRadius: 2, mb: 0.5 }}
+                                        secondaryAction={
+                                            <Button
+                                                size="small"
+                                                variant="outlined"
+                                                onClick={() => handleOpenDocument(doc)}
+                                                disabled={openingDocId === doc.id}
+                                                startIcon={openingDocId === doc.id ? <CircularProgress size={14} /> : <DescriptionIcon />}
+                                            >
+                                                {openingDocId === doc.id ? 'Loading...' : 'Open'}
+                                            </Button>
+                                        }
+                                    >
+                                        <ListItemIcon>
+                                            <InsertDriveFileIcon color="primary" />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary={<Typography fontWeight={600} variant="body2">{doc.document_type_label || doc.document_type}</Typography>}
+                                            secondary={`${doc.original_name} ${doc.file_size ? '• ' + formatBytes(doc.file_size) : ''}`}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </Box>
+                    )}
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setViewLoan(null)}>Close</Button>

@@ -90,6 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/loans/{id}/approve', [LoanController::class, 'approve'])->middleware('role:admin');
     Route::post('/loans/{id}/reject', [LoanController::class, 'reject'])->middleware('role:admin');
     Route::get('/loan-repayments', [LoanRepaymentController::class, 'index'])->middleware('role:admin,officer');
+    Route::get('/loan-documents/{id}/view', [LoanController::class, 'viewDocument']);
 
     // Scheduled Transfers
     Route::get('/my-scheduled-transfers', [ScheduledTransferController::class, 'index']);

@@ -193,4 +193,30 @@ class LoanController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
         }
     }
+
+    /**
+     * Stream or download supporting document (Admin, Officer, or Applicant).
+     */
+    public function viewDocument(Request $request, int $id)
+    {
+        $doc = LoanDocument::with('loan')->findOrFail($id);
+        $user = $request->user();
+
+        if (!$user->isAdmin() && !$user->isOfficer() && $doc->loan->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if (!Storage::disk('public')->exists($doc->file_path)) {
+            return response()->json(['message' => 'Document file not found on disk.'], 404);
+        }
+
+        return Storage::disk('public')->response(
+            $doc->file_path,
+            $doc->original_name,
+            [
+                'Content-Disposition' => 'inline; filename="' . $doc->original_name . '"',
+                'Cache-Control' => 'no-cache, private',
+            ]
+        );
+    }
 }

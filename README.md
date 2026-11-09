@@ -136,9 +136,11 @@ The platform is pre-seeded with standardized banking accounts representing the t
 - Actions: **Approve** (posts debits/credits to general ledger and completes transfer) or **Reject** (returns funds and releases hold).
 
 ### 4.7 Automated Loan Simulation Engine & Document Verification
-- **Loan Applications with Document Uploads**: Customers apply with requested principal amount, term in months, purpose, and attach supporting documentation (National ID, Pay Slips, Employment Letters, Bank Statements).
-- **Compliance Officer Verification (Read-Only Review)**: Officers inspect loan requests and review client-submitted documentation to evaluate authenticity and creditworthiness without approval authority.
-- **Administrative Decision & Disbursement (Admin-Only)**: Only Administrators have permission to approve (which triggers automatic principal disbursement into the designated account) or reject loan applications with feedback.
+- **Clear Architectural Separation of Responsibilities**:
+  - **Personal Banking (`/loans`)**: Every user (customers, officers, and administrators in personal capacity) applies for loans, uploads verification documents, inspects personal amortization schedules, and submits repayments.
+  - **Control & Oversight (`/loan-approvals`)**: Dedicated administrative desk reserved for institutional loan portfolio review, risk analysis, and decision execution.
+- **Compliance Officer Verification (Read-Only Review)**: Officers inspect loan requests and review client-submitted documentation in Control & Oversight to evaluate authenticity and creditworthiness without approval authority.
+- **Administrative Decision & Disbursement (Admin-Only)**: Only Administrators have authority in Control & Oversight to approve (which triggers automatic principal disbursement into the designated account) or reject loan applications with feedback.
 - **Amortization Schedule Generation**: Generates monthly installment breakdown calculating principal vs. interest components.
 - **Loan Repayments**: Customers submit repayments with automated ledger balance reduction.
 

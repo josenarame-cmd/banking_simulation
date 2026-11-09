@@ -20,6 +20,7 @@ import TransferPage from './pages/transfers/TransferPage';
 import TransactionsList from './pages/transactions/TransactionsList';
 import ApprovalsPage from './pages/approvals/ApprovalsPage';
 import LoansPage from './pages/loans/LoansPage';
+import LoanApprovalsPage from './pages/loans/LoanApprovalsPage';
 import ScheduledTransfersPage from './pages/scheduled/ScheduledTransfersPage';
 import LedgerPage from './pages/ledger/LedgerPage';
 import ReconciliationPage from './pages/ledger/ReconciliationPage';
@@ -113,6 +114,8 @@ export default function AppRouter() {
                         <Route element={<ProtectedRoute allowedRoles={['admin', 'officer']} />}>
                             <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
                             <Route path="/approvals" element={<ApprovalsPage />} />
+                            <Route path="/loan-approvals" element={<LoanApprovalsPage />} />
+                            <Route path="/admin/loan-approvals" element={<LoanApprovalsPage />} />
                             <Route path="/ledger" element={<LedgerPage />} />
                             <Route path="/reconciliation" element={<ReconciliationPage />} />
                             <Route path="/interest" element={<InterestManagementPage />} />

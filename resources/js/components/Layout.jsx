@@ -46,6 +46,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
 import HowToVoteIcon from '@mui/icons-material/HowToVote';
+import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 
 import { useAuth } from '../context/AuthContext';
 import { useColorMode } from '../context/ThemeContext';
@@ -123,6 +124,7 @@ export default function Layout() {
                 ...(isAdmin ? [{ text: 'Admin Overview', path: '/admin/dashboard', icon: <DashboardIcon /> }] : []),
                 ...(isInstructor ? [{ text: 'Officer Lab', path: '/instructor/dashboard', icon: <DashboardIcon /> }] : []),
                 { text: 'Transfer Approvals', path: '/approvals', icon: <HowToVoteIcon /> },
+                { text: 'Loan Review & Approvals', path: '/loan-approvals', icon: <AssignmentTurnedInIcon /> },
                 { text: 'Double-Entry Ledger', path: '/ledger', icon: <MenuBookIcon /> },
                 { text: 'Ledger Reconciliation', path: '/reconciliation', icon: <FactCheckIcon /> },
                 { text: 'Security & Fraud Alerts', path: '/security-alerts', icon: <SecurityIcon /> },

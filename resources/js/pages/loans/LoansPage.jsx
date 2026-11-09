@@ -14,8 +14,6 @@ import {
     TableHead,
     TableRow,
     Paper,
-    Tabs,
-    Tab,
     Chip,
     CircularProgress,
     Dialog,
@@ -36,22 +34,17 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import AddIcon from '@mui/icons-material/Add';
 import PaymentIcon from '@mui/icons-material/Payment';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ScheduleIcon from '@mui/icons-material/Schedule';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DeleteIcon from '@mui/icons-material/Delete';
-import LockIcon from '@mui/icons-material/Lock';
-import GavelIcon from '@mui/icons-material/Gavel';
-import SearchIcon from '@mui/icons-material/Search';
 import DescriptionIcon from '@mui/icons-material/Description';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
 import DownloadIcon from '@mui/icons-material/Download';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -77,13 +70,6 @@ export default function LoansPage() {
     const { user, loading: authLoading } = useAuth();
     const navigate = useNavigate();
 
-    const isAdmin   = user?.role === 'admin';
-    const isOfficer = user?.role === 'officer';
-    const isStaff   = isAdmin || isOfficer;
-
-    // Staff tab: 0 = All System Loans, 1 = My Personal Loans
-    const [staffTab, setStaffTab] = useState(0);
-
     // Status filter chip
     const [statusFilter, setStatusFilter] = useState('all');
 
@@ -92,17 +78,15 @@ export default function LoansPage() {
     const [accounts, setAccounts] = useState([]);
 
     // ── Application Modal ─────────────────────────────────────────
-    const [applyOpen, setApplyOpen]           = useState(false);
+    const [applyOpen, setApplyOpen]                   = useState(false);
     const [receivingAccountId, setReceivingAccountId] = useState('');
-    const [principalAmount, setPrincipalAmount] = useState('2000');
-    const [termMonths, setTermMonths]         = useState('6');
-    const [purpose, setPurpose]               = useState('');
-    const [applyError, setApplyError]         = useState('');
-    const [applySuccess, setApplySuccess]     = useState('');
-    const [submitting, setSubmitting]         = useState(false);
-
-    // Multiple document uploads
-    const [uploadedFiles, setUploadedFiles] = useState([]); // [{file, type}]
+    const [principalAmount, setPrincipalAmount]       = useState('2000');
+    const [termMonths, setTermMonths]                 = useState('6');
+    const [purpose, setPurpose]                       = useState('');
+    const [applyError, setApplyError]                 = useState('');
+    const [applySuccess, setApplySuccess]             = useState('');
+    const [submitting, setSubmitting]                 = useState(false);
+    const [uploadedFiles, setUploadedFiles]           = useState([]); // [{file, type}]
 
     // ── Repay Modal ───────────────────────────────────────────────
     const [repayLoan, setRepayLoan]     = useState(null);
@@ -110,20 +94,9 @@ export default function LoansPage() {
     const [repayError, setRepayError]   = useState('');
     const [repaySuccess, setRepaySuccess] = useState('');
 
-    // ── Loan Review Modal (details + docs + approve/reject) ───────
-    const [reviewLoan, setReviewLoan]           = useState(null);
-    const [reviewLoading, setReviewLoading]     = useState(false);
-    const [approveNotes, setApproveNotes]       = useState('');
-    const [rejectReason, setRejectReason]       = useState('');
-    const [actionTab, setActionTab]             = useState(0); // 0=approve 1=reject
-    const [actionError, setActionError]         = useState('');
-    const [actionSuccess, setActionSuccess]     = useState('');
-    const [actionSubmitting, setActionSubmitting] = useState(false);
-
     // ── Schedule Viewer ───────────────────────────────────────────
     const [viewLoan, setViewLoan]               = useState(null);
     const [scheduleLoading, setScheduleLoading] = useState(false);
-    const [openingDocId, setOpeningDocId]       = useState(null);
 
     // ── Document In-App Reader Modal ──────────────────────────────
     const [previewDoc, setPreviewDoc]           = useState(null);
@@ -136,17 +109,12 @@ export default function LoansPage() {
         return `${base}/loan-documents/${docId}/view?token=${encodeURIComponent(token)}`;
     };
 
-    const showingAll = isStaff && staffTab === 0;
-
-    // ─────────────────────────────────────────────────────────────
+    // ── Load Personal Loans ───────────────────────────────────────
     const loadData = async () => {
         setLoading(true);
-        const endpoint = showingAll ? '/loans' : '/my-loans';
         try {
             const [loansRes, accRes] = await Promise.all([
-                api.get(endpoint, {
-                    params: statusFilter !== 'all' ? { status: statusFilter } : {}
-                }),
+                api.get('/my-loans'),
                 api.get('/my-accounts')
             ]);
             let list = loansRes.data.data || [];
@@ -160,7 +128,7 @@ export default function LoansPage() {
                 setReceivingAccountId(userAccounts[0].id);
             }
         } catch (err) {
-            console.error('Failed to load loans:', err);
+            console.error('Failed to load personal loans:', err);
         } finally {
             setLoading(false);
         }
@@ -169,7 +137,7 @@ export default function LoansPage() {
     useEffect(() => {
         if (authLoading) return;
         loadData();
-    }, [user, staffTab, statusFilter]);
+    }, [user, statusFilter]);
 
     // ── Apply Submit ─────────────────────────────────────────────
     const handleApplySubmit = async (e) => {
@@ -193,7 +161,7 @@ export default function LoansPage() {
             await api.post('/loans/apply', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setApplySuccess('Loan application submitted! Awaiting administrator approval.');
+            setApplySuccess('Loan application submitted! It is now pending administrative review.');
             await loadData();
             setTimeout(() => {
                 setApplyOpen(false);
@@ -218,7 +186,7 @@ export default function LoansPage() {
             const res = await api.post(`/loans/${repayLoan.id}/repay`, {
                 amount: parseFloat(repayAmount),
             });
-            setRepaySuccess(`Repayment of $${repayAmount} successful! Remaining: $${res.data.remaining_loan_balance}.`);
+            setRepaySuccess(`Repayment of $${repayAmount} successful! Remaining balance: $${res.data.remaining_loan_balance}.`);
             await loadData();
             setTimeout(() => { setRepayLoan(null); setRepaySuccess(''); }, 1200);
         } catch (err) {
@@ -226,70 +194,6 @@ export default function LoansPage() {
         } finally {
             setSubmitting(false);
         }
-    };
-
-    // ── Open Review Modal ────────────────────────────────────────
-    const handleOpenReview = async (loanId) => {
-        setReviewLoading(true);
-        setActionError('');
-        setActionSuccess('');
-        setApproveNotes('');
-        setRejectReason('');
-        setActionTab(0);
-        try {
-            const res = await api.get(`/loans/${loanId}`);
-            setReviewLoan(res.data.loan);
-        } catch (err) {
-            alert('Failed to load loan details: ' + (err.response?.data?.message || err.message));
-        } finally {
-            setReviewLoading(false);
-        }
-    };
-
-    // ── Approve ──────────────────────────────────────────────────
-    const handleApproveLoan = async () => {
-        if (!window.confirm('Approve this loan and disburse principal funds into the client account?')) return;
-        setActionSubmitting(true);
-        setActionError('');
-        try {
-            await api.post(`/loans/${reviewLoan.id}/approve`, { notes: approveNotes });
-            setActionSuccess('Loan approved and funds disbursed successfully!');
-            await loadData();
-            // Refresh review modal data
-            const res = await api.get(`/loans/${reviewLoan.id}`);
-            setReviewLoan(res.data.loan);
-        } catch (err) {
-            setActionError(err.response?.data?.message || 'Approval failed.');
-        } finally {
-            setActionSubmitting(false);
-        }
-    };
-
-    // ── Reject ───────────────────────────────────────────────────
-    const handleRejectLoan = async () => {
-        if (!rejectReason.trim()) {
-            setActionError('Please enter a rejection reason.');
-            return;
-        }
-        if (!window.confirm('Reject this loan application?')) return;
-        setActionSubmitting(true);
-        setActionError('');
-        try {
-            await api.post(`/loans/${reviewLoan.id}/reject`, { reason: rejectReason });
-            setActionSuccess('Loan has been rejected.');
-            await loadData();
-            const res = await api.get(`/loans/${reviewLoan.id}`);
-            setReviewLoan(res.data.loan);
-        } catch (err) {
-            setActionError(err.response?.data?.message || 'Rejection failed.');
-        } finally {
-            setActionSubmitting(false);
-        }
-    };
-
-    // ── Open Document Reader ─────────────────────────────────────
-    const handleOpenDocument = (doc) => {
-        setPreviewDoc(doc);
     };
 
     // ── View Schedule ────────────────────────────────────────────
@@ -331,17 +235,17 @@ export default function LoansPage() {
 
     return (
         <Container maxWidth="xl" sx={{ py: 3 }}>
+            {/* Header */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
                 <Box>
-                    <Typography variant="h4" fontWeight={800} gutterBottom>
-                        {showingAll ? 'Loan Portfolio Administration' : 'My Loans & Credit Facilities'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        {showingAll
-                            ? isAdmin
-                                ? 'Review loan applications, verify client documents, and approve or reject requests.'
-                                : 'Review loan applications and verify client-submitted documentation (read-only).'
-                            : 'Request credit facilities, monitor your repayment schedule, and make repayments.'}
+                    <Box display="flex" alignItems="center" gap={1.5}>
+                        <AccountBalanceWalletIcon color="primary" sx={{ fontSize: 32 }} />
+                        <Typography variant="h4" fontWeight={800}>
+                            My Loans & Credit Facilities
+                        </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Request personal loan facilities, upload verification documents, inspect amortization schedules, and make repayments.
                     </Typography>
                 </Box>
                 <Button
@@ -349,39 +253,17 @@ export default function LoansPage() {
                     startIcon={<AddIcon />}
                     onClick={() => { setApplyError(''); setApplySuccess(''); setUploadedFiles([]); setApplyOpen(true); }}
                 >
-                    Apply for Loan
+                    Apply for a Loan
                 </Button>
             </Box>
-
-            {/* Staff Role Tabs */}
-            {isStaff && (
-                <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-                    <Tabs value={staffTab} onChange={(_, val) => setStaffTab(val)}>
-                        <Tab
-                            label={isAdmin ? 'All Loan Applications (Admin Review)' : 'All Loan Applications (Read-Only Review)'}
-                            icon={isAdmin ? <GavelIcon fontSize="small" /> : <SearchIcon fontSize="small" />}
-                            iconPosition="start"
-                        />
-                        <Tab label="My Personal Loans" />
-                    </Tabs>
-                </Box>
-            )}
-
-            {/* Officer read-only notice */}
-            {isOfficer && staffTab === 0 && (
-                <Alert severity="info" icon={<LockIcon />} sx={{ mb: 2 }}>
-                    <strong>Read-Only Review Mode</strong> — As a Compliance Officer you can review loan applications and
-                    verify all client-submitted documentation. Only an Administrator can approve or reject loans.
-                </Alert>
-            )}
 
             {/* Status Filter Chips */}
             <Box mb={3} display="flex" gap={1} flexWrap="wrap">
                 {[
-                    { label: 'All Statuses',     value: 'all' },
+                    { label: 'All My Loans',     value: 'all' },
                     { label: 'Pending Approval', value: 'pending' },
                     { label: 'Active Facilities', value: 'active' },
-                    { label: 'Paid / Completed', value: 'paid' },
+                    { label: 'Paid in Full',     value: 'paid' },
                     { label: 'Rejected',         value: 'rejected' },
                 ].map((s) => (
                     <Chip
@@ -406,13 +288,12 @@ export default function LoansPage() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Loan ID</TableCell>
-                                {showingAll && <TableCell>Applicant</TableCell>}
                                 <TableCell>Disbursement Account</TableCell>
                                 <TableCell align="right">Principal</TableCell>
                                 <TableCell align="right">Total Obligation</TableCell>
-                                <TableCell align="right">Remaining</TableCell>
-                                <TableCell>Term</TableCell>
-                                <TableCell>Docs</TableCell>
+                                <TableCell align="right">Remaining Balance</TableCell>
+                                <TableCell>Term / Rate</TableCell>
+                                <TableCell>Documents</TableCell>
                                 <TableCell>Status</TableCell>
                                 <TableCell align="center">Actions</TableCell>
                             </TableRow>
@@ -420,14 +301,27 @@ export default function LoansPage() {
                         <TableBody>
                             {loading && loans.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={showingAll ? 10 : 9} align="center" sx={{ py: 5 }}>
+                                    <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                                         <CircularProgress size={32} />
                                     </TableCell>
                                 </TableRow>
                             ) : loans.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={showingAll ? 10 : 9} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                                        No loan applications found matching criteria.
+                                    <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
+                                        <Typography variant="body1" fontWeight={600} color="text.secondary">
+                                            No personal loan applications found.
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                            Need funding? Click "Apply for a Loan" to submit your application.
+                                        </Typography>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<AddIcon />}
+                                            sx={{ mt: 2 }}
+                                            onClick={() => { setApplyError(''); setApplySuccess(''); setUploadedFiles([]); setApplyOpen(true); }}
+                                        >
+                                            Submit First Application
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -436,16 +330,6 @@ export default function LoansPage() {
                                         <TableCell sx={{ fontWeight: 700, fontFamily: 'monospace' }}>
                                             #{loan.id}
                                         </TableCell>
-                                        {showingAll && (
-                                            <TableCell>
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {loan.user?.name || 'N/A'}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {loan.user?.email || ''}
-                                                </Typography>
-                                            </TableCell>
-                                        )}
                                         <TableCell sx={{ fontFamily: 'monospace', fontWeight: 600 }}>
                                             {loan.account?.account_number || 'N/A'}
                                         </TableCell>
@@ -465,7 +349,7 @@ export default function LoansPage() {
                                             {(loan.loan_documents?.length || 0) > 0 ? (
                                                 <Chip
                                                     icon={<AttachFileIcon />}
-                                                    label={loan.loan_documents.length}
+                                                    label={`${loan.loan_documents.length} doc${loan.loan_documents.length > 1 ? 's' : ''}`}
                                                     size="small"
                                                     color="info"
                                                     variant="outlined"
@@ -479,19 +363,15 @@ export default function LoansPage() {
                                         </TableCell>
                                         <TableCell align="center">
                                             <Stack direction="row" spacing={1} justifyContent="center">
-                                                {/* Schedule button */}
-                                                <Tooltip title="View repayment schedule">
-                                                    <Button
-                                                        size="small"
-                                                        variant="text"
-                                                        startIcon={<ScheduleIcon />}
-                                                        onClick={() => handleViewSchedule(loan.id)}
-                                                    >
-                                                        Schedule
-                                                    </Button>
-                                                </Tooltip>
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    startIcon={<ScheduleIcon />}
+                                                    onClick={() => handleViewSchedule(loan.id)}
+                                                >
+                                                    Schedule
+                                                </Button>
 
-                                                {/* Repay button (customer or personal tab) */}
                                                 {loan.status === 'active' && Number(loan.remaining_balance) > 0 && (
                                                     <Button
                                                         size="small"
@@ -508,21 +388,6 @@ export default function LoansPage() {
                                                         Repay
                                                     </Button>
                                                 )}
-
-                                                {/* Review button for staff */}
-                                                {isStaff && showingAll && (
-                                                    <Button
-                                                        size="small"
-                                                        variant={loan.status === 'pending' ? 'contained' : 'outlined'}
-                                                        color={isAdmin && loan.status === 'pending' ? 'primary' : 'inherit'}
-                                                        startIcon={isAdmin ? <GavelIcon /> : <VisibilityIcon />}
-                                                        onClick={() => handleOpenReview(loan.id)}
-                                                    >
-                                                        {loan.status === 'pending'
-                                                            ? (isAdmin ? 'Review & Decide' : 'Review (Read-Only)')
-                                                            : 'View Details'}
-                                                    </Button>
-                                                )}
                                             </Stack>
                                         </TableCell>
                                     </TableRow>
@@ -532,221 +397,6 @@ export default function LoansPage() {
                     </Table>
                 </TableContainer>
             </Card>
-
-            {/* ═══════════════════════════════════════════════════════════
-                LOAN REVIEW MODAL (Admin: approve/reject | Officer: read-only)
-            ═══════════════════════════════════════════════════════════ */}
-            <Dialog open={Boolean(reviewLoan)} onClose={() => setReviewLoan(null)} maxWidth="md" fullWidth>
-                <DialogTitle fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {isAdmin ? <GavelIcon color="warning" /> : <SearchIcon color="info" />}
-                    Loan #{reviewLoan?.id} — {isAdmin ? 'Review & Decision' : 'Read-Only Review'}
-                    {isOfficer && (
-                        <Chip icon={<LockIcon />} label="Read-Only" size="small" color="info" sx={{ ml: 'auto' }} />
-                    )}
-                </DialogTitle>
-                <DialogContent dividers>
-                    {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
-                    {actionSuccess && <Alert severity="success" sx={{ mb: 2 }}>{actionSuccess}</Alert>}
-
-                    {/* ── Loan Info Summary ── */}
-                    <Typography variant="subtitle2" fontWeight={700} color="text.secondary" gutterBottom>
-                        LOAN APPLICATION SUMMARY
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid item xs={6} sm={3}>
-                            <Typography variant="caption" color="text.secondary">Applicant</Typography>
-                            <Typography fontWeight={700}>{reviewLoan?.user?.name || 'N/A'}</Typography>
-                            <Typography variant="caption">{reviewLoan?.user?.email || ''}</Typography>
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <Typography variant="caption" color="text.secondary">Principal Requested</Typography>
-                            <Typography fontWeight={700} color="primary">
-                                ${Number(reviewLoan?.principal_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <Typography variant="caption" color="text.secondary">Term / Rate</Typography>
-                            <Typography fontWeight={700}>{reviewLoan?.term_months} months @ {reviewLoan?.interest_rate}%</Typography>
-                        </Grid>
-                        <Grid item xs={6} sm={3}>
-                            <Typography variant="caption" color="text.secondary">Status</Typography>
-                            <Box mt={0.5}><StatusBadge status={reviewLoan?.status} /></Box>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <Typography variant="caption" color="text.secondary">Loan Purpose</Typography>
-                            <Typography>{reviewLoan?.purpose || '—'}</Typography>
-                        </Grid>
-                        {reviewLoan?.rejection_reason && (
-                            <Grid item xs={12}>
-                                <Alert severity="error">
-                                    <strong>Rejection Reason:</strong> {reviewLoan.rejection_reason}
-                                </Alert>
-                            </Grid>
-                        )}
-                    </Grid>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    {/* ── Submitted Documents ── */}
-                    <Typography variant="subtitle2" fontWeight={700} color="text.secondary" gutterBottom>
-                        CLIENT-SUBMITTED DOCUMENTS ({reviewLoan?.loan_documents?.length || 0})
-                    </Typography>
-                    {(!reviewLoan?.loan_documents || reviewLoan.loan_documents.length === 0) ? (
-                        <Alert severity="warning" sx={{ mb: 2 }}>
-                            No supporting documents were submitted with this loan application.
-                        </Alert>
-                    ) : (
-                        <List dense sx={{ mb: 2 }}>
-                            {reviewLoan.loan_documents.map((doc) => (
-                                <ListItem
-                                    key={doc.id}
-                                    sx={{ border: 1, borderColor: 'divider', borderRadius: 2, mb: 1 }}
-                                    secondaryAction={
-                                        <Stack direction="row" spacing={1}>
-                                            <Button
-                                                size="small"
-                                                variant="contained"
-                                                color="primary"
-                                                startIcon={<DescriptionIcon />}
-                                                onClick={() => setPreviewDoc(doc)}
-                                            >
-                                                Read Document
-                                            </Button>
-                                            <Tooltip title="Open in new browser tab">
-                                                <IconButton
-                                                    size="small"
-                                                    color="primary"
-                                                    href={getDocumentUrl(doc.id)}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                >
-                                                    <OpenInNewIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Stack>
-                                    }
-                                >
-                                    <ListItemIcon>
-                                        <InsertDriveFileIcon color="primary" />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary={
-                                            <Typography fontWeight={600}>
-                                                {doc.document_type_label || doc.document_type}
-                                            </Typography>
-                                        }
-                                        secondary={`${doc.original_name} ${doc.file_size ? '• ' + formatBytes(doc.file_size) : ''}`}
-                                    />
-                                </ListItem>
-                            ))}
-                        </List>
-                    )}
-
-                    {/* ── Admin-only: Approve / Reject Actions ── */}
-                    {isAdmin && reviewLoan?.status === 'pending' && (
-                        <Paper variant="outlined" sx={{ p: 2.5, my: 2, borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'light' ? '#f8fafc' : '#1e293b' }}>
-                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5} flexWrap="wrap" gap={1}>
-                                <Box>
-                                    <Typography variant="subtitle2" fontWeight={800}>
-                                        ADMINISTRATIVE DECISION
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Examine applicant documentation above, then record your approval or rejection decision.
-                                    </Typography>
-                                </Box>
-                                <Tabs value={actionTab} onChange={(_, v) => setActionTab(v)} sx={{ minHeight: 36 }}>
-                                    <Tab label="✅ Approve & Disburse" sx={{ minHeight: 36, fontWeight: 700 }} />
-                                    <Tab label="❌ Reject Application" sx={{ minHeight: 36, fontWeight: 700, color: 'error.main' }} />
-                                </Tabs>
-                            </Box>
-
-                            <Divider sx={{ my: 1.5 }} />
-
-                            {actionTab === 0 && (
-                                <Box>
-                                    <Alert severity="success" sx={{ mb: 2 }}>
-                                        <strong>Disbursement Target:</strong> Approving will disburse <strong>${Number(reviewLoan?.principal_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> directly into client account <strong>{reviewLoan?.account?.account_number}</strong>.
-                                    </Alert>
-                                    <TextField
-                                        fullWidth
-                                        multiline
-                                        rows={2}
-                                        label="Reviewer Verification Notes (optional)"
-                                        value={approveNotes}
-                                        onChange={(e) => setApproveNotes(e.target.value)}
-                                        placeholder="e.g. Identity and income verified through submitted documents. Approved without conditions."
-                                        sx={{ mb: 2 }}
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        color="success"
-                                        size="large"
-                                        startIcon={actionSubmitting ? <CircularProgress size={18} color="inherit" /> : <CheckCircleOutlineIcon />}
-                                        onClick={handleApproveLoan}
-                                        disabled={actionSubmitting}
-                                    >
-                                        Approve & Disburse ${Number(reviewLoan?.principal_amount || 0).toLocaleString()}
-                                    </Button>
-                                </Box>
-                            )}
-
-                            {actionTab === 1 && (
-                                <Box>
-                                    <Alert severity="warning" sx={{ mb: 2 }}>
-                                        Rejecting this loan request will notify the applicant and mark the facility as declined.
-                                    </Alert>
-                                    <TextField
-                                        fullWidth
-                                        multiline
-                                        rows={3}
-                                        label="Reason for Rejection *"
-                                        value={rejectReason}
-                                        onChange={(e) => setRejectReason(e.target.value)}
-                                        placeholder="e.g. Identity or proof of income document is unreadable or insufficient to meet risk requirements."
-                                        sx={{ mb: 2 }}
-                                        required
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        color="error"
-                                        size="large"
-                                        startIcon={actionSubmitting ? <CircularProgress size={18} color="inherit" /> : null}
-                                        onClick={handleRejectLoan}
-                                        disabled={actionSubmitting}
-                                    >
-                                        Confirm Rejection
-                                    </Button>
-                                </Box>
-                            )}
-                        </Paper>
-                    )}
-
-                    {/* Officer notice: no actions */}
-                    {isOfficer && (
-                        <>
-                            <Divider sx={{ my: 2 }} />
-                            <Alert severity="info" icon={<LockIcon />}>
-                                <strong>Compliance Officer — Review Complete.</strong> You have reviewed the application and
-                                supporting documents. Contact the Administrator to take approval action on this loan.
-                            </Alert>
-                        </>
-                    )}
-
-                    {/* Admin view when already decided */}
-                    {isAdmin && reviewLoan?.status !== 'pending' && (
-                        <>
-                            <Divider sx={{ my: 2 }} />
-                            <Alert severity={reviewLoan?.status === 'active' ? 'success' : 'warning'}>
-                                This loan has already been <strong>{reviewLoan?.status}</strong>.
-                                {reviewLoan?.approved_at && ` Decision made on ${new Date(reviewLoan.approved_at).toLocaleDateString()}.`}
-                            </Alert>
-                        </>
-                    )}
-                </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setReviewLoan(null)}>Close</Button>
-                </DialogActions>
-            </Dialog>
 
             {/* ═══════════════════════════════════════════════════════════
                 APPLY LOAN MODAL
@@ -843,7 +493,7 @@ export default function LoansPage() {
                             value={purpose}
                             onChange={(e) => setPurpose(e.target.value)}
                             margin="normal"
-                            placeholder="e.g. Equipment purchase, home renovation, education fees..."
+                            placeholder="e.g. Funding equipment purchase, working capital, agriculture..."
                             required
                         />
 
@@ -853,7 +503,7 @@ export default function LoansPage() {
                                 Supporting Documents
                             </Typography>
                             <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                                Upload relevant documents (National ID, pay slip, employment letter, etc.). PDF, JPG, PNG — max 5 MB each.
+                                Upload relevant verification documents (National ID, pay slips, business registration). PDF, JPG, PNG — max 5 MB each.
                             </Typography>
 
                             <Button
@@ -953,7 +603,7 @@ export default function LoansPage() {
             </Dialog>
 
             {/* ═══════════════════════════════════════════════════════════
-                INSTALLMENT SCHEDULE MODAL
+                SCHEDULE & REPAYMENT VIEWER MODAL
             ═══════════════════════════════════════════════════════════ */}
             <Dialog open={Boolean(viewLoan)} onClose={() => setViewLoan(null)} maxWidth="md" fullWidth>
                 <DialogTitle fontWeight={700}>
@@ -969,6 +619,12 @@ export default function LoansPage() {
                             Remaining: <strong style={{ color: '#ef4444' }}>${Number(viewLoan?.remaining_balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
                         </Typography>
                     </Box>
+
+                    {viewLoan?.rejection_reason && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            <strong>Application Declined:</strong> {viewLoan.rejection_reason}
+                        </Alert>
+                    )}
 
                     <TableContainer component={Paper} elevation={0}>
                         <Table size="small">
@@ -1003,16 +659,17 @@ export default function LoansPage() {
                         </Table>
                     </TableContainer>
 
+                    {/* Submitted Documents for this loan */}
                     {(viewLoan?.loan_documents?.length > 0) && (
-                        <Box mt={2}>
-                            <Typography variant="caption" fontWeight={700} color="text.secondary">
-                                SUBMITTED SUPPORTING DOCUMENTS
+                        <Box mt={3}>
+                            <Typography variant="subtitle2" fontWeight={700} color="text.secondary" gutterBottom>
+                                YOUR SUBMITTED SUPPORTING DOCUMENTS
                             </Typography>
                             <List dense sx={{ mt: 0.5 }}>
                                 {viewLoan.loan_documents.map((doc) => (
                                     <ListItem
                                         key={doc.id}
-                                        sx={{ border: 1, borderColor: 'divider', borderRadius: 2, mb: 0.5 }}
+                                        sx={{ border: 1, borderColor: 'divider', borderRadius: 2, mb: 1, p: 1.5 }}
                                         secondaryAction={
                                             <Stack direction="row" spacing={1}>
                                                 <Button
@@ -1022,7 +679,7 @@ export default function LoansPage() {
                                                     startIcon={<DescriptionIcon />}
                                                     onClick={() => setPreviewDoc(doc)}
                                                 >
-                                                    Read Document
+                                                    View Document
                                                 </Button>
                                                 <Tooltip title="Open in new browser tab">
                                                     <IconButton
@@ -1039,10 +696,10 @@ export default function LoansPage() {
                                         }
                                     >
                                         <ListItemIcon>
-                                            <InsertDriveFileIcon color="primary" />
+                                            <InsertDriveFileIcon color="primary" sx={{ fontSize: 30 }} />
                                         </ListItemIcon>
                                         <ListItemText
-                                            primary={<Typography fontWeight={600} variant="body2">{doc.document_type_label || doc.document_type}</Typography>}
+                                            primary={<Typography fontWeight={700} variant="body2">{doc.document_type_label || doc.document_type}</Typography>}
                                             secondary={`${doc.original_name} ${doc.file_size ? '• ' + formatBytes(doc.file_size) : ''}`}
                                         />
                                     </ListItem>
@@ -1073,7 +730,7 @@ export default function LoansPage() {
                                 {previewDoc?.original_name}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                                Type: <strong>{previewDoc?.document_type_label || previewDoc?.document_type}</strong>
+                                Document Category: <strong>{previewDoc?.document_type_label || previewDoc?.document_type}</strong>
                                 {previewDoc?.file_size ? ` • ${formatBytes(previewDoc.file_size)}` : ''}
                             </Typography>
                         </Box>
@@ -1113,40 +770,8 @@ export default function LoansPage() {
                         />
                     )}
                 </DialogContent>
-                <DialogActions sx={{ p: 1.5, justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
-                        Use zoom, scroll, and print controls inside the reader to review all client-submitted documents.
-                    </Typography>
-                    <Stack direction="row" spacing={1}>
-                        {isAdmin && reviewLoan?.status === 'pending' && (
-                            <>
-                                <Button
-                                    variant="outlined"
-                                    color="error"
-                                    size="small"
-                                    onClick={() => {
-                                        setPreviewDoc(null);
-                                        setActionTab(1);
-                                    }}
-                                >
-                                    Reject Application
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    color="success"
-                                    size="small"
-                                    startIcon={<CheckCircleOutlineIcon />}
-                                    onClick={() => {
-                                        setPreviewDoc(null);
-                                        setActionTab(0);
-                                    }}
-                                >
-                                    Approve Loan
-                                </Button>
-                            </>
-                        )}
-                        <Button variant="outlined" onClick={() => setPreviewDoc(null)}>Done Reading</Button>
-                    </Stack>
+                <DialogActions sx={{ p: 1.5, justifyContent: 'flex-end' }}>
+                    <Button variant="contained" onClick={() => setPreviewDoc(null)}>Close Document</Button>
                 </DialogActions>
             </Dialog>
         </Container>

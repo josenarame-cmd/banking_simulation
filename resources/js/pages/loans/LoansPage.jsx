@@ -51,6 +51,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import DescriptionIcon from '@mui/icons-material/Description';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import CloseIcon from '@mui/icons-material/Close';
+import DownloadIcon from '@mui/icons-material/Download';
 
 import StatusBadge from '../../components/StatusBadge';
 import { useAuth } from '../../context/AuthContext';
@@ -286,22 +287,9 @@ export default function LoansPage() {
         }
     };
 
-    // ── Open Document in browser ────────────────────────────────
-    const handleOpenDocument = async (doc) => {
-        setOpeningDocId(doc.id);
-        try {
-            const res = await api.get(`/loan-documents/${doc.id}/view`, {
-                responseType: 'blob',
-            });
-            const mimeType = doc.mime_type || 'application/pdf';
-            const blob = new Blob([res.data], { type: mimeType });
-            const fileUrl = window.URL.createObjectURL(blob);
-            window.open(fileUrl, '_blank');
-        } catch (err) {
-            alert('Failed to open document: ' + (err.response?.data?.message || err.message));
-        } finally {
-            setOpeningDocId(null);
-        }
+    // ── Open Document Reader ─────────────────────────────────────
+    const handleOpenDocument = (doc) => {
+        setPreviewDoc(doc);
     };
 
     // ── View Schedule ────────────────────────────────────────────
@@ -1077,6 +1065,14 @@ export default function LoansPage() {
                         </Box>
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<DownloadIcon />}
+                            href={getDocumentUrl(previewDoc?.id) + '&download=1'}
+                        >
+                            Download
+                        </Button>
                         <Button
                             variant="outlined"
                             size="small"

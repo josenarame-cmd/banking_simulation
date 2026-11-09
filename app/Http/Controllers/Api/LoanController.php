@@ -232,6 +232,10 @@ class LoanController extends Controller
             }
         }
 
+        if ($request->boolean('download')) {
+            return response()->download($filePath, $doc->original_name);
+        }
+
         $mimeType = $doc->mime_type ?: (str_ends_with(strtolower($doc->original_name), '.pdf') ? 'application/pdf' : 'application/octet-stream');
 
         return response()->file($filePath, [
